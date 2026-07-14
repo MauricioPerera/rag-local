@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>rag-local</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --panel: #121821;
+    --border: #1f2937;
+    --text: #e6edf3;
+    --text2: #94a3b8;
+    --accent: #4f8cff;
+    --accent2: #34d399;
+    --radius: 12px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+  section { margin: 4rem 0; }
+  h1, h2, h3 { line-height: 1.25; }
+  h2 { font-size: 1.6rem; margin: 0 0 1.2rem; }
+  h3 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+  p { color: var(--text2); margin: 0 0 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  /* language selector */
+  #lang-bar {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 6px;
+    z-index: 50;
+    background: rgba(18,24,33,0.9);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px;
+  }
+  #lang-bar button {
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text2);
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  #lang-bar button:hover { color: var(--text); }
+  #lang-bar button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* hero */
+  .hero { text-align: center; padding-top: 5rem; }
+  .hero h1 { font-size: 2.6rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+  .hero .subtitle { font-size: 1.2rem; color: var(--text2); margin: 0 auto 2.5rem; max-width: 620px; }
+
+  .diagram { width: 100%; max-width: 760px; margin: 0 auto; display: block; }
+  .diagram .box-rect { fill: var(--panel); stroke: var(--border); stroke-width: 1.5; }
+  .diagram .box-rect.center { stroke: var(--accent); }
+  .diagram text { fill: var(--text); font-family: var(--font); font-size: 15px; font-weight: 600; }
+  .diagram .label { fill: var(--text2); font-weight: 500; }
+  .diagram .arrow { stroke: var(--border); stroke-width: 2; }
+  .diagram .arrowhead { fill: var(--border); }
+  .diagram .dot { fill: var(--accent); }
+  .dot1 { animation: travel 3.2s ease-in-out infinite; }
+  .dot2 { animation: travel 3.2s ease-in-out infinite; animation-delay: 1.6s; }
+  .dot3 { animation: travel-back 3.2s ease-in-out infinite; animation-delay: 0.8s; }
+  @keyframes travel {
+    0%   { transform: translateX(0); opacity: 0; }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { transform: translateX(140px); opacity: 0; }
+  }
+  @keyframes travel-back {
+    0%   { transform: translateX(140px); opacity: 0; }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { transform: translateX(0); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot1, .dot2, .dot3 { animation: none; opacity: 0.55; }
+  }
+
+  /* generic cards */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+  .card .icon { width: 32px; height: 32px; margin-bottom: 12px; }
+  .card .icon .stroke { fill: none; stroke: var(--accent2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card p { margin: 0; }
+
+  /* how steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: step; }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+  }
+  .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .step p { margin: 0; }
+  .analogy {
+    margin-top: 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    color: var(--text2);
+  }
+
+  /* install */
+  .install-list { display: flex; flex-direction: column; gap: 22px; }
+  .install-step h3 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700;
+    font-size: 0.9rem; margin-right: 10px;
+  }
+  .install-step p { margin: 0.4rem 0 0.8rem; }
+  .code-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    margin: 6px 0;
+  }
+  .code-block code {
+    color: var(--text);
+    font-size: 0.92rem;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .copy-btn {
+    flex: none;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    color: var(--text);
+    background: #1b2330;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .copy-btn:hover { background: #232d3d; }
+  .copy-btn.copied { color: var(--accent2); border-color: var(--accent2); }
+  .note {
+    margin-top: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    color: var(--text2);
+  }
+  .note strong { color: var(--text); }
+
+  /* usage */
+  .example {
+    background: #0d141c;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+    color: var(--text2);
+    white-space: pre-wrap;
+  }
+
+  /* connect */
+  .connect .code-block code { white-space: normal; word-break: break-word; }
+
+  /* faq */
+  details {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 10px;
+  }
+  details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    list-style: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "+ "; color: var(--accent); margin-right: 6px; }
+  details[open] summary::before { content: "− "; }
+  details p { margin: 10px 0 0; }
+
+  /* footer */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 4rem;
+    padding: 2rem 20px;
+    color: var(--text2);
+  }
+  .footer-inner { max-width: 920px; margin: 0 auto; }
+  .footer-links { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  /* responsive */
+  @media (max-width: 720px) {
+    .grid, .steps { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 2rem; }
+    section { margin: 2.5rem 0; }
+    #lang-bar { top: 10px; right: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="lang-bar" role="group" aria-label="Language">
+  <button type="button" data-lang="es" aria-pressed="false">ES</button>
+  <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  <button type="button" data-lang="pt" aria-pressed="false">PT</button>
+</div>
+
+<main>
+
+  <!-- a. HERO -->
+  <section class="hero" id="top">
+    <h1 data-i18n="hero_title">rag-local</h1>
+    <p class="subtitle" data-i18n="hero_subtitle">Your private memory for AI assistants</p>
+
+    <svg class="diagram" viewBox="0 0 760 200" role="img" aria-label="rag-local data flow">
+      <!-- box A: AI assistant -->
+      <rect class="box-rect" x="20" y="60" width="180" height="80" rx="12" />
+      <text data-i18n="hero_ai" x="110" y="96" text-anchor="middle">Your AI assistant</text>
+      <text class="label" x="110" y="118" text-anchor="middle" style="font-size:12px">AI</text>
+
+      <!-- arrow A -> B -->
+      <line class="arrow" x1="200" y1="100" x2="350" y2="100" />
+      <polygon class="arrowhead" points="350,100 340,95 340,105" />
+      <circle class="dot dot1" cx="205" cy="100" r="5" />
+
+      <!-- box B: rag-local -->
+      <rect class="box-rect center" x="350" y="40" width="180" height="120" rx="12" />
+      <text data-i18n="hero_rag" x="440" y="96" text-anchor="middle">rag-local</text>
+      <text class="label" x="440" y="118" text-anchor="middle" style="font-size:12px">local</text>
+
+      <!-- arrow B -> C -->
+      <line class="arrow" x1="530" y1="100" x2="680" y2="100" />
+      <polygon class="arrowhead" points="680,100 670,95 670,105" />
+      <circle class="dot dot2" cx="535" cy="100" r="5" />
+
+      <!-- box C: documents -->
+      <rect class="box-rect" x="680" y="60" width="60" height="80" rx="12" />
+      <text data-i18n="hero_docs" x="710" y="104" text-anchor="middle" style="font-size:12px">Docs</text>
+
+      <!-- return pulse B -> A (under) -->
+      <line class="arrow" x1="530" y1="150" x2="200" y2="150" />
+      <polygon class="arrowhead" points="200,150 210,145 210,155" />
+      <circle class="dot dot3" cx="525" cy="150" r="5" />
+    </svg>
+  </section>
+
+  <!-- b. WHAT IS IT -->
+  <section id="what">
+    <h2 data-i18n="what_title">What is it?</h2>
+    <p data-i18n="what_intro">A simple way to give your AI assistant access to your own notes and documents, without anything leaving your computer.</p>
+    <div class="grid">
+      <div class="card">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="stroke" d="M12 3l7 3v5c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3z" />
+          <path class="stroke" d="M9.5 12l2 2 3.5-4" />
+        </svg>
+        <h3 data-i18n="what_c1_title">Private</h3>
+        <p data-i18n="what_c1_text">Your documents never leave your machine. No external servers, no cloud.</p>
+      </div>
+      <div class="card">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="stroke" d="M4 7l8-4 8 4-8 4-8-4z" />
+          <path class="stroke" d="M4 12l8 4 8-4" />
+          <path class="stroke" d="M4 17l8 4 8-4" />
+        </svg>
+        <h3 data-i18n="what_c2_title">Yours forever</h3>
+        <p data-i18n="what_c2_text">Everything is stored in files you back up and control. Your knowledge, your rules.</p>
+      </div>
+      <div class="card">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path class="stroke" d="M12 4v8" />
+          <circle cx="12" cy="16" r="2.5" class="stroke" />
+          <path class="stroke" d="M6 8a8 8 0 0 1 12 0M8.5 11a4 4 0 0 1 7 0" />
+        </svg>
+        <h3 data-i18n="what_c3_title">Works with any assistant</h3>
+        <p data-i18n="what_c3_text">Connects with Claude and other compatible assistants, so they answer using your data.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- c. HOW IT WORKS -->
+  <section id="how">
+    <h2 data-i18n="how_title">How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3 data-i18n="how_s1_title">You save your notes</h3>
+        <p data-i18n="how_s1_text">You create collections and add your documents using a simple format.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3 data-i18n="how_s2_title">The system understands them</h3>
+        <p data-i18n="how_s2_text">rag-local reads and organizes the content so it can be searched meaningfully.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3 data-i18n="how_s3_title">Your assistant queries them</h3>
+        <p data-i18n="how_s3_text">When you ask something, your assistant searches your collections and answers with your data.</p>
+      </div>
+    </div>
+    <p class="analogy" data-i18n="how_analogy">It's like having a personal library with its own librarian.</p>
+  </section>
+
+  <!-- d. INSTALLATION -->
+  <section id="install">
+    <h2 data-i18n="install_title">Installation</h2>
+    <div class="install-list">
+      <div class="install-step">
+        <h3><span class="num">1</span><span data-i18n="install_s1_title">Install Node.js</span></h3>
+        <p data-i18n="install_s1_text_html">Download and install Node.js from nodejs.org.</p>
+      </div>
+      <div class="install-step">
+        <h3><span class="num">2</span><span data-i18n="install_s2_title">Download the project</span></h3>
+        <p data-i18n="install_s2_text_html">Clone the repository or use Download ZIP on GitHub.</p>
+      </div>
+      <div class="install-step">
+        <h3><span class="num">3</span><span data-i18n="install_s3_title">Open the terminal and paste two commands</span></h3>
+        <p data-i18n="install_s3_text">In the project folder, open a terminal and paste these two commands, one at a time:</p>
+        <div class="code-block">
+          <code data-i18n="install_cmd1">cd rag-node &amp;&amp; npm install</code>
+          <button type="button" class="copy-btn" data-i18n="btn_copy">Copy</button>
+        </div>
+        <div class="code-block">
+          <code data-i18n="install_cmd2">node rag-server.mjs</code>
+          <button type="button" class="copy-btn" data-i18n="btn_copy">Copy</button>
+        </div>
+      </div>
+      <div class="install-step">
+        <h3><span class="num">4</span><span data-i18n="install_s4_title">Open the local web page</span></h3>
+        <p data-i18n="install_s4_text">In your browser, go to http://localhost:8937.</p>
+      </div>
+      <p class="note" data-i18n="install_note_html">The first time, rag-local downloads about 316 MB.</p>
+    </div>
+  </section>
+
+  <!-- e. EVERYDAY USE -->
+  <section id="usage">
+    <h2 data-i18n="usage_title">Everyday use</h2>
+    <div class="grid">
+      <div class="card">
+        <h3 data-i18n="usage_c1_title">Create a collection</h3>
+        <p data-i18n="usage_c1_text">You build a collection with a name and add documents using a simple format (OKF): title, description, and tags.</p>
+        <pre class="example" data-i18n="usage_c1_example">Title: Bread recipes
+Description: How to make homemade bread step by step.
+Tags: cooking, bread, easy</pre>
+      </div>
+      <div class="card">
+        <h3 data-i18n="usage_c2_title">Search</h3>
+        <p data-i18n="usage_c2_text">You type a question in plain language and the system shows you the most relevant snippets, with a score showing how useful each one is.</p>
+      </div>
+      <div class="card">
+        <h3 data-i18n="usage_c3_title">Back up</h3>
+        <p data-i18n="usage_c3_text">You export a collection as a single portable file (.jvsb) and save it wherever you want.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- f. CONNECT -->
+  <section id="connect" class="connect">
+    <h2 data-i18n="connect_title">Connect it to your assistant</h2>
+    <p data-i18n="connect_text">So Claude can use your collections, run this single command in the terminal:</p>
+    <div class="code-block">
+      <code data-i18n="connect_cmd">claude mcp add rag-local -- npx -y @rckflr/mcpwasm http://localhost:8937</code>
+      <button type="button" class="copy-btn" data-i18n="btn_copy">Copy</button>
+    </div>
+    <p data-i18n="connect_explain">That lets Claude read your collections to answer, and also create new ones from your conversations.</p>
+  </section>
+
+  <!-- g. FAQ -->
+  <section id="faq">
+    <h2 data-i18n="faq_title">Frequently asked questions</h2>
+    <details>
+      <summary data-i18n="faq_q1">Does my data leave my computer?</summary>
+      <p data-i18n="faq_a1">No, never. All processing happens on your machine.</p>
+    </details>
+    <details>
+      <summary data-i18n="faq_q2">Do I need to know how to code?</summary>
+      <p data-i18n="faq_a2">Not to use it. Just copy three commands.</p>
+    </details>
+    <details>
+      <summary data-i18n="faq_q3">How much disk space does it use?</summary>
+      <p data-i18n="faq_a3">About 350 MB including the AI model.</p>
+    </details>
+    <details>
+      <summary data-i18n="faq_q4">Does it work without internet?</summary>
+      <p data-i18n="faq_a4">Yes. After the first model download, rag-local runs 100% offline.</p>
+    </details>
+    <details>
+      <summary data-i18n="faq_q5">Can I delete everything?</summary>
+      <p data-i18n="faq_a5">Yes. Delete the project folder and nothing is left behind.</p>
+    </details>
+  </section>
+
+</main>
+
+<!-- h. FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="https://github.com/MauricioPerera/rag-local" target="_blank" rel="noopener" data-i18n="footer_repo">View on GitHub</a>
+      <a href="https://github.com/MauricioPerera/rag-local/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n="footer_license">MIT License</a>
+    </div>
+    <p data-i18n="footer_credit_html">Built on the work of EmbeddingGemma, js-vector-store, mcpwasm, and the OKF format.</p>
+  </div>
+</footer>
+
+<script>
+  (async function () {
+    var dict = null;
+    var current = 'en';
+
+    try {
+      var res = await fetch('./i18n.json');
+      dict = await res.json();
+    } catch (e) {
+      // Without the dictionary the page still shows its fallback English content.
+      return;
+    }
+
+    function applyLang(lang) {
+      if (!dict || !dict[lang]) lang = 'en';
+      current = lang;
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var k = el.getAttribute('data-i18n');
+        var v = dict[lang][k];
+        if (v == null) return;
+        if (k.indexOf('_html', k.length - 5) !== -1) {
+          el.innerHTML = v;
+        } else {
+          el.textContent = v;
+        }
+      });
+      document.querySelectorAll('[data-lang]').forEach(function (b) {
+        var on = b.getAttribute('data-lang') === lang;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      try { localStorage.setItem('rag-local-lang', lang); } catch (e) {}
+    }
+
+    function pickInitial() {
+      try {
+        var saved = localStorage.getItem('rag-local-lang');
+        if (saved && dict[saved]) return saved;
+      } catch (e) {}
+      var nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
+      if (nav === 'es' || nav === 'en' || nav === 'pt') return nav;
+      return 'en';
+    }
+
+    document.querySelectorAll('[data-lang]').forEach(function (b) {
+      b.addEventListener('click', function () { applyLang(b.getAttribute('data-lang')); });
+    });
+
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var codeEl = btn.parentElement.querySelector('code');
+        var text = codeEl ? codeEl.textContent : '';
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (e) {
+          // clipboard may be unavailable (e.g. non-HTTPS); fail silently.
+          return;
+        }
+        var copied = dict[current] ? dict[current].btn_copied : 'Copied';
+        btn.textContent = copied;
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = dict[current] ? dict[current].btn_copy : 'Copy';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+
+    applyLang(pickInitial());
+  })();
+</script>
+</body>
+</html>
