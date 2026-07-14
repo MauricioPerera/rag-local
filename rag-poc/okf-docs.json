@@ -1,0 +1,42 @@
+[
+ {
+  "id": "ia-salud",
+  "md": "---\ntype: Nota técnica\ntitle: Inteligencia Artificial en Salud\ndescription: La inteligencia artificial esta revolucionando el diagnostico medico\ntags: [ia, diagnostico medico, salud]\n---\n\n# Resumen\n\nLa IA aplicada al diagnostico medico permite detectar enfermedades de forma temprana y mas precisa, apoyando al profesional de la salud."
+ },
+ {
+  "id": "ml-finanzas",
+  "md": "---\ntype: Nota técnica\ntitle: Machine Learning contra Fraudes\ndescription: Machine learning aplicado a la deteccion de fraudes financieros\ntags: [machine learning, fraude, finanzas]\n---\n\n# Resumen\n\nModelos de machine learning analizan patrones de transacciones para marcar operaciones sospechosas y reducir perdidas por fraude."
+ },
+ {
+  "id": "nlp-chatbots",
+  "md": "---\ntype: Nota técnica\ntitle: NLP para Chatbots Empresariales\ndescription: Procesamiento de lenguaje natural para chatbots empresariales\ntags: [nlp, chatbots, procesamiento de lenguaje]\n---\n\n# Resumen\n\nEl procesamiento de lenguaje natural habilita chatbots que entienden consultas de clientes y responden de forma automatica en contextos empresariales."
+ },
+ {
+  "id": "cv-autonomos",
+  "md": "---\ntype: Nota técnica\ntitle: Vision Artificial en Autonomos\ndescription: Vision por computadora en vehiculos autonomos\ntags: [vision por computadora, vehiculos autonomos, computo visual]\n---\n\n# Resumen\n\nLa vision por computadora permite a los vehiculos autonomos percibir el entorno, detectar obstaculos y tomar decisiones de conduccion."
+ },
+ {
+  "id": "db-vectoriales",
+  "md": "---\ntype: Nota técnica\ntitle: Bases de Datos Vectoriales\ndescription: Bases de datos vectoriales para busqueda semantica\ntags: [bases de datos vectoriales, busqueda semantica, embeddings]\n---\n\n# Resumen\n\nLas bases de datos vectoriales almacenan embeddings y permiten recuperar documentos por similitud semantica, base del RAG."
+ },
+ {
+  "id": "cloud-infra",
+  "md": "---\ntype: Nota técnica\ntitle: Infraestructura Cloud para IA\ndescription: Infraestructura cloud para despliegue de modelos de IA\ntags: [cloud, infraestructura, despliegue de modelos]\n---\n\n# Resumen\n\nLa infraestructura cloud escala GPU y almacenamiento para desplegar y servir modelos de IA en produccion de forma elastica."
+ },
+ {
+  "id": "robotica",
+  "md": "---\ntype: Nota técnica\ntitle: Robotica Industrial con Deep Learning\ndescription: Robotica industrial y automatizacion con deep learning\ntags: [robotica, automatizacion, deep learning]\n---\n\n# Resumen\n\nEl deep learning mejora la robotica industrial dotando a los brazos mecanicos de percepcion y adaptacion para tareas de automatizacion."
+ },
+ {
+  "id": "rec-systems",
+  "md": "---\ntype: Nota técnica\ntitle: Sistemas de Recomendacion por Embeddings\ndescription: Sistemas de recomendacion basados en embeddings\ntags: [sistemas de recomendacion, embeddings, recomendacion]\n---\n\n# Resumen\n\nLos sistemas de recomendacion basados en embeddings representan usuarios e items en un mismo espacio vectorial para sugerir contenido relevante."
+ },
+ {
+  "id": "gen-ai",
+  "md": "---\ntype: Nota técnica\ntitle: Modelos Generativos con Transformers\ndescription: Modelos generativos de texto e imagenes con transformers\ntags: [modelos generativos, transformers, texto e imagenes]\n---\n\n# Resumen\n\nLos modelos generativos basados en transformers producen texto e imagenes nuevos aprendiendo distribuciones a partir de grandes corpus."
+ },
+ {
+  "id": "etica-ia",
+  "md": "---\ntype: Nota técnica\ntitle: Etica y Sesgo en IA\ndescription: Etica y sesgo en sistemas de inteligencia artificial\ntags: [etica, sesgo, inteligencia artificial]\n---\n\n# Resumen\n\nLa etica en IA busca mitigar sesgos y garantizar decisiones justas, transparentes y responsables en los sistemas de inteligencia artificial."
+ }
+]

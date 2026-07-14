@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>RAG Host — motor de embeddings al servicio del bridge</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; }
+  #status { font-weight: bold; margin: 8px 0; }
+  #log { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; font-size: 12px; height: 320px; overflow-y: auto; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>RAG Host — motor de embeddings al servicio del bridge</h1>
+  <div id="status">cargando modelo...</div>
+
+  <h3>Log</h3>
+  <div id="log"></div>
+
+  <script src="./js-vector-store.js"></script>
+  <script type="module" src="./rag-host.mjs"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RAG Local — Administración</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>RAG Local — Administración</h1>
+    <div id="estado" class="estado"></div>
+  </header>
+
+  <main>
+    <!-- (a) ESTADO ya está en la barra superior; aquí va el conteo extra -->
+    <section id="seccion-estado">
+      <p id="conteo-colecciones" class="muted"></p>
+    </section>
+
+    <!-- (b) COLECCIONES -->
+    <section id="seccion-colecciones">
+      <h2>Colecciones</h2>
+      <table id="tabla-colecciones">
+        <thead>
+          <tr><th>Nombre</th><th>Acciones</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <h3>Importar bundle</h3>
+      <div class="row">
+        <input type="file" id="import-file" accept=".jvsb">
+        <input type="text" id="import-name" placeholder="nombre de colección">
+        <button id="import-btn" type="button">Importar</button>
+      </div>
+      <p id="import-result" class="muted"></p>
+    </section>
+
+    <!-- (c) CREAR COLECCIÓN -->
+    <section id="seccion-crear">
+      <h2>Crear colección</h2>
+      <div class="row">
+        <input type="text" id="crear-name" placeholder="nombre de colección">
+        <button id="crear-plantilla" type="button">Plantilla</button>
+        <button id="crear-btn" type="button">Crear</button>
+      </div>
+      <textarea id="crear-docs" class="mono" rows="14"
+        placeholder='Array JSON de docs: [{ "id": "x", "md": "---\\ntype: ...\\n---\\n\\n# Resumen\\n\\n..." }]'></textarea>
+      <pre id="crear-error" class="error-pre"></pre>
+    </section>
+
+    <!-- (d) PLAYGROUND DE QUERIES -->
+    <section id="seccion-playground">
+      <h2>Playground de queries</h2>
+      <div class="row">
+        <select id="pg-coleccion"></select>
+        <input type="text" id="pg-text" placeholder="texto de búsqueda" style="flex:2">
+        <label>k <input type="number" id="pg-k" value="5" min="1" style="width:5em"></label>
+        <button id="pg-btn" type="button">Buscar</button>
+      </div>
+      <div id="pg-resultados"></div>
+    </section>
+  </main>
+
+  <!-- Área de estado global para errores -->
+  <div id="estado-global" class="estado-global"></div>
+
+  <script type="module" src="/ui/app.mjs"></script>
+</body>
+</html>

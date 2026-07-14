@@ -1,0 +1,28 @@
+# Demo dirs excluded from the published repo
+/ocr-demo/
+/embed-demo/
+
+# Claude / editor working files
+/.claude/
+
+# Dependencies
+node_modules/
+
+# Runtime artifacts (downloaded models + persisted collections)
+rag-node/models/
+rag-node/collections/
+
+# Logs
+*.log
+
+# Task specs / reports / dev logs (working artifacts, not published)
+T*-SPEC.txt
+T*-REPORT.md
+T*-dev-log.txt
+
+# Misc local artifacts
+*.output
+rag-poc/okf-demo.jvsb
+rag-poc/page4*.png
+rag-poc/test.png
+rag-poc/libro.pdf

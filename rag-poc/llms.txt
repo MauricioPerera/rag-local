@@ -1,0 +1,7 @@
+# RAG local skills
+
+## Skills
+
+- [rag_list_collections](/skills/rag_list_collections/SKILL.md): List all RAG collection names from the local rag-bridge. <!-- skill: {"version":"1.0.0","tool":"/skills/rag_list_collections/tool.js","tool_sha256":"74627d634bfc9ed42bc6c1d84c99577e44eed1c8212e030bab168a09d25cb5d5"} -->
+- [rag_query](/skills/rag_query/SKILL.md): Query a RAG collection for the top-k most relevant chunks. <!-- skill: {"version":"1.0.0","tool":"/skills/rag_query/tool.js","tool_sha256":"fc0503250b2fe3b4a432c4af6d03b6fbc65bda08336e476a36ab4e2175313014"} -->
+- [rag_create_collection](/skills/rag_create_collection/SKILL.md): Create a RAG collection with documents (rejects bodies over 15KB). <!-- skill: {"version":"1.0.0","tool":"/skills/rag_create_collection/tool.js","tool_sha256":"b134d3450411a905d1bd247bd4fdf2803d92afae65f7a71b41d8c3f81f8ba5b2"} -->

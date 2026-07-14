@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>RAG POC — LiteRT.js EmbeddingGemma + js-vector-store</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; }
+  #log { white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; font-size: 12px; height: 260px; overflow-y: auto; margin-top: 12px; }
+  button { padding: 8px 16px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+  #status { font-weight: bold; margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13px; }
+  th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+  th { background: #eee; }
+  .section { margin-top: 24px; }
+  code { background: #eee; padding: 1px 4px; }
+</style>
+</head>
+<body>
+  <h1>RAG POC — EmbeddingGemma (LiteRT.js) + js-vector-store</h1>
+  <p>Valida: carga del modelo, indexado de un corpus, recuperación (Float32 vs Int8 cuantizado), precisión, IVF, y matriz de similitud — todo en el navegador.</p>
+
+  <button id="runBtn" disabled>Ejecutar POC completo</button>
+  <div id="status">Cargando modelo...</div>
+
+  <div id="results"></div>
+
+  <h3>Log</h3>
+  <div id="log"></div>
+
+  <script src="./js-vector-store.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

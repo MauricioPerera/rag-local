@@ -1,0 +1,8 @@
+{
+  "name": "rag-node",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1"
+  }
+}
