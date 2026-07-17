@@ -3,6 +3,11 @@
 // Reemplaza al embedder del navegador (LiteRT.js) del POC por uno basado en
 // @huggingface/transformers + modelo onnx-community/embeddinggemma-300m-ONNX.
 //
+// Gemelo de rag-poc/embedder-browser.mjs. Lo que define el vector (MODEL_ID,
+// prefijos, normalización) vive en rag-poc/embedder-shared.mjs y lo comparten
+// los dos: si divergiera, las colecciones indexadas en Node darían basura al
+// consultarlas desde el navegador, sin ningún error visible.
+//
 // Patrón de carga: SINGLETON A NIVEL MÓDULO. El modelo y el tokenizer se cargan
 // UNA sola vez por proceso (la promesa `loadPromise` se reutiliza en todas las
 // llamadas a createEmbedder). La primera carga descarga ~309MB al cache de HF
@@ -12,12 +17,11 @@
 import { AutoModel, AutoTokenizer, env } from '@huggingface/transformers';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { MODEL_ID, makeEmbedFn } from '../rag-poc/embedder-shared.mjs';
 
 // Cache del modelo FUERA de node_modules (el default vive dentro y un
 // `npm install` limpio lo borraría, forzando re-descarga de ~316MB).
 env.cacheDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'models');
-
-const MODEL_ID = 'onnx-community/embeddinggemma-300m-ONNX';
 
 // Promesa singleton: se crea en el primer createEmbedder y se reutiliza.
 let loadPromise = null;
@@ -35,28 +39,6 @@ function getLoadPromise(dtype) {
   return loadPromise;
 }
 
-// Prompts asimétricos EXACTOS (paridad con el POC).
-const PREFIXES = {
-  query: 'task: search result | query: ',
-  document: 'title: none | text: ',
-  similarity: 'task: sentence similarity | query: ',
-};
-
-function promptFor(text, mode) {
-  const prefix = PREFIXES[mode] ?? PREFIXES.similarity;
-  return prefix + text;
-}
-
-// L2-normaliza un vector (el modelo emite sentence_embedding ya ~normalizado,
-// pero normalizamos explícitamente para garantizar norma ≈ 1).
-function l2Normalize(vec) {
-  let norm = 0;
-  for (let i = 0; i < vec.length; i++) norm += vec[i] * vec[i];
-  norm = Math.sqrt(norm);
-  if (norm === 0) return vec;
-  return vec.map((v) => v / norm);
-}
-
 /**
  * Crea un embedder. El modelo se carga una sola vez (singleton de módulo).
  * @param {object} opts
@@ -66,20 +48,5 @@ function l2Normalize(vec) {
 export async function createEmbedder(opts = {}) {
   const dtype = opts.dtype ?? 'q8';
   const { tokenizer, model } = await getLoadPromise(dtype);
-
-  /**
-   * @param {string} text
-   * @param {string} [mode='similarity'] - 'query' | 'document' | 'similarity'
-   * @returns {Promise<number[]>} embedding de 768 dims, L2-normalizado.
-   */
-  async function embedFn(text, mode = 'similarity') {
-    const prompted = promptFor(text, mode);
-    const inputs = tokenizer(prompted);
-    const { sentence_embedding } = await model(inputs);
-    // sentence_embedding: Tensor [1, 768] -> Array<number> de 768.
-    const vec = sentence_embedding.tolist()[0];
-    return l2Normalize(vec);
-  }
-
-  return { embedFn };
+  return { embedFn: makeEmbedFn({ tokenizer, model }) };
 }
