@@ -1,7 +1,24 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
+// Por defecto habla con rag-server.mjs en localhost, como siempre.
+//
+// RAG_BASE_URL apunta el CLI a cualquier otra cosa que hable el MISMO contrato
+// REST — en particular a rag-web sobre Cloudflare Pages, donde el engine corre
+// en una pestaña. Como las rutas de esa API viven bajo /api, el prefijo va en la
+// URL base y no hay que tocar ni un path:
+//
+//   RAG_BASE_URL=https://rag-local.pages.dev/api
+//   RAG_API_SECRET=<el secreto>          # esa API exige auth; rag-server no
+//
 const PORT = Number(process.env.RAG_BRIDGE_PORT) || 8937;
-const BASE = `http://localhost:${PORT}`;
+const BASE = (process.env.RAG_BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+const SECRET = process.env.RAG_API_SECRET || '';
+
+// Solo manda Authorization si hay secreto: rag-server.mjs no lo pide y un header
+// de más no le molesta, pero no inventamos auth donde no hace falta.
+function H(extra = {}) {
+  return SECRET ? { ...extra, Authorization: `Bearer ${SECRET}` } : extra;
+}
 
 function usage() {
   console.log(`Usage: node rag-cli.mjs <command> ...
@@ -12,7 +29,13 @@ function usage() {
   query <name> "<texto>" [k]
   export <name> <salida.jvsb>
   import <name> <entrada.jvsb>
-  delete <name>`);
+  delete <name>
+
+Habla con ${BASE}${SECRET ? ' (con API_SECRET)' : ''}.
+  RAG_BASE_URL     apunta a otro backend con el mismo contrato
+                   (ej: https://rag-local.pages.dev/api)
+  RAG_API_SECRET   Bearer token, si ese backend lo exige
+  RAG_BRIDGE_PORT  puerto de rag-server.mjs en localhost (default 8937)`);
 }
 
 async function bodyJSON(res) {
@@ -36,13 +59,13 @@ async function main() {
   try {
     switch (cmd) {
       case 'health': {
-        const r = await fetch(`${BASE}/health`);
+        const r = await fetch(`${BASE}/health`, { headers: H() });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
         if (!r.ok) process.exitCode = 1;
         return;
       }
       case 'list': {
-        const r = await fetch(`${BASE}/collections`);
+        const r = await fetch(`${BASE}/collections`, { headers: H() });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
         if (!r.ok) process.exitCode = 1;
         return;
@@ -57,7 +80,7 @@ async function main() {
         const docs = JSON.parse(readFileSync(docsFile, 'utf8'));
         const r = await fetch(`${BASE}/collections`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: H({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ name, docs }),
         });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
@@ -75,7 +98,7 @@ async function main() {
         if (k != null) body.k = Number(k);
         const r = await fetch(`${BASE}/collections/${encodeURIComponent(name)}/query`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: H({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(body),
         });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
@@ -89,7 +112,7 @@ async function main() {
           process.exitCode = 1;
           return;
         }
-        const r = await fetch(`${BASE}/collections/${encodeURIComponent(name)}/export`);
+        const r = await fetch(`${BASE}/collections/${encodeURIComponent(name)}/export`, { headers: H() });
         if (!r.ok) {
           console.log(JSON.stringify(await bodyJSON(r), null, 2));
           process.exitCode = 1;
@@ -110,7 +133,7 @@ async function main() {
         const buf = readFileSync(inFile);
         const r = await fetch(`${BASE}/collections/${encodeURIComponent(name)}/import`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/octet-stream' },
+          headers: H({ 'Content-Type': 'application/octet-stream' }),
           body: buf,
         });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
@@ -126,6 +149,7 @@ async function main() {
         }
         const r = await fetch(`${BASE}/collections/${encodeURIComponent(name)}`, {
           method: 'DELETE',
+          headers: H(),
         });
         console.log(JSON.stringify(await bodyJSON(r), null, 2));
         if (!r.ok) process.exitCode = 1;
