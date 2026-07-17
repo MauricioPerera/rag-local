@@ -49,6 +49,27 @@ file — without it, 94 s of silence reads as a hang.
 devices that cannot run a WebGPU LLM at all. `device` is selectable in the UI;
 left alone, transformers.js decides.
 
+## Deploy
+
+`functions/` lives at the repo root and must stay there — copied inside the
+output directory it is served as static files and every POST silently 405s.
+
+```bash
+wrangler pages project create rag-local --production-branch main
+wrangler pages secret put API_SECRET        # then deploy; a secret only reaches
+                                            # deployments created AFTER it
+mkdir -p _site/rag-web _site/rag-poc
+cp rag-web/index.html rag-web/app.js _site/rag-web/
+cp rag-poc/{rag-engine,okf,fsa-persistence,embedder-browser,embedder-shared}.mjs    rag-poc/js-vector-store.js rag-poc/okf-docs.json _site/rag-poc/
+wrangler pages deploy _site --project-name rag-local --branch main
+```
+
+165 KB total: the 309 MB model comes from Hugging Face, not from Pages (whose
+per-asset limit is 25 MiB anyway). Live: <https://rag-local.pages.dev>.
+
+On Windows, PowerShell's execution policy blocks npm's `wrangler.ps1` shim — call
+`wrangler.cmd`.
+
 ## The API
 
 Same paths and bodies as `rag-server.mjs`, under `/api`:

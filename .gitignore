@@ -13,8 +13,9 @@ rag-node/models/
 rag-node/collections/
 /collections/
 
-# Wrangler local dev cache (rag-web Functions)
+# Wrangler local dev cache + Pages deploy artifact (rag-web)
 .wrangler/
+/_site/
 
 # Logs
 *.log
