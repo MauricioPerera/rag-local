@@ -334,6 +334,27 @@ const OPS = {
   createCollection: (e, a) => e.createCollection(a.name, a.docs),
   deleteCollection: (e, a) => e.deleteCollection(a.name),
   query: (e, a) => e.query(a.name, a.text, a.k ?? 5),
+
+  // export/import mueven el .jvsb entero. Los bytes van por /api/blob, NUNCA por
+  // el JSON del buzón: base64+JSON de 20 MB cuesta 33 ms de CPU (medido) contra
+  // los 10 ms que da el plan Free, lo que toparía los bundles a ~5 MB. Crudos,
+  // el techo es el request body: 100 MB.
+  exportBundle: async (e, a, job) => {
+    const bundle = await e.exportBundle(a.name);
+    const r = await fetch(`/api/blob?id=${encodeURIComponent(job.blobId)}`, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/octet-stream' }, auth()),
+      body: bundle,
+    });
+    if (!r.ok) throw new Error(`no pude subir el bundle: ${r.status}`);
+    return { bytes: bundle.byteLength }; // el aviso; los bytes ya están en el blob
+  },
+
+  importBundle: async (e, a, job) => {
+    const r = await fetch(`/api/blob?id=${encodeURIComponent(job.blobId)}`, { headers: auth() });
+    if (!r.ok) throw new Error(`no pude bajar el bundle: ${r.status}`);
+    return e.importBundle(a.name, await r.arrayBuffer());
+  },
 };
 
 async function workerLoop() {
@@ -374,7 +395,8 @@ async function workerLoop() {
       } else {
         wstatus(`ejecutando ${job.op}…`);
         try {
-          payload = { id: job.id, value: await fn(engine, job.args || {}) };
+          // el job va como 3er argumento: export/import necesitan su blobId
+          payload = { id: job.id, value: await fn(engine, job.args || {}, job) };
         } catch (e) {
           // Los errores del engine (validación OKF, colección inexistente) son
           // del que llamó, no del worker: 400, con el motivo entero.

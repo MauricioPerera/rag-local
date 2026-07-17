@@ -51,6 +51,36 @@ export async function takeResult(id) {
   return data;
 }
 
+// ── blobs (export / import) ────────────────────────────────────────────────
+// Los .jvsb NO viajan por el buzón JSON. Medido: base64+JSON de 20 MB cuesta
+// 33 ms de CPU y el plan Free da 10 ms por invocación, así que ese camino topa
+// a ~5 MB. Acá los bytes se guardan como Response binaria y se pasan en
+// streaming: sin base64 (+33% y todo ese CPU), sin JSON.parse, sin pico de
+// memoria. El techo pasa a ser el request body: 100 MB en Free.
+
+const BLOB = (id) => `https://rag-queue.internal/blob/${id}`;
+
+export async function putBlob(id, bodyStream) {
+  await cache().put(
+    new Request(BLOB(id)),
+    new Response(bodyStream, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Cache-Control': `max-age=${TTL}`,
+      },
+    })
+  );
+}
+
+// Devuelve la Response cruda: quien llama la reenvía o la lee, sin materializar
+// los bytes acá si no hace falta.
+export async function takeBlob(id, { keep = false } = {}) {
+  const hit = await cache().match(new Request(BLOB(id)));
+  if (!hit) return null;
+  if (!keep) await cache().delete(new Request(BLOB(id)));
+  return hit;
+}
+
 // ── estado del worker ──────────────────────────────────────────────────────
 // La pestaña lo reporta en cada long-poll de /api/next: no cuesta requests
 // extra, es un efecto de una llamada que ya hace igual.

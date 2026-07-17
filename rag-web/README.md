@@ -89,6 +89,8 @@ curl -X POST https://<project>.pages.dev/api/collections/ejemplo/query \
 | POST | `/api/collections` | create `{name, docs:[{id,md}]}` |
 | DELETE | `/api/collections/:name` | delete |
 | POST | `/api/collections/:name/query` | `{text, k}` |
+| GET | `/api/collections/:name/export` | the raw `.jvsb` |
+| POST | `/api/collections/:name/import` | body: the raw `.jvsb` |
 | GET | `/api/status` | is a tab listening? is it armed? |
 | GET | `/api/health` | liveness (unauthenticated) |
 
@@ -122,6 +124,38 @@ externally supplied `op` straight onto `engine[op]` would expose every method to
 anyone with the secret.
 
 **One job at a time**: one engine, one model. Everything else gets 429.
+
+### export/import go around the JSON mailbox
+
+A `.jvsb` is bytes. Putting it through the JSON queue means base64 — +33% and a
+lot of CPU — and the Free plan allows **10 ms of CPU per invocation**. Measured:
+
+| bundle | base64 + JSON.stringify | JSON.parse + decode |
+|---|---|---|
+| 1 MB | 1.7 ms | 1.2 ms |
+| 5 MB | 7.1 ms | 5.6 ms |
+| 20 MB | **33.5 ms** | 21.2 ms |
+
+So that path tops out around 5 MB on Free — an artificial ceiling, since nothing
+about the platform requires base64. `export`/`import` therefore use a separate
+binary channel (`functions/api/blob.js`): raw `application/octet-stream`,
+streamed straight into the Cache API as a binary `Response`. No base64, no
+`JSON.parse`, no multi-MB spike in a 128 MB isolate. Verified byte-for-byte at 5
+MB and 20 MB — the size that dies on the JSON path.
+
+The other four routes stay on `_rpc`: they are small JSON and the backoff is
+tuned for them. export/import are the exception, not the rule.
+
+Measured bundle sizes (768-dim Int8 vectors + metadata + the `md` itself):
+
+| | per doc | 1,000 docs | 10,000 docs |
+|---|---|---|---|
+| short docs (~135 B) | 1,236 B | 1.18 MB | ~12 MB |
+| long docs (~1.7 KB) | 2,800 B | 2.67 MB | ~27 MB |
+
+The real ceiling is now the request body limit — 100 MB on Free/Pro — i.e. tens
+of thousands of documents. A personal knowledge base is orders of magnitude
+below it.
 
 ## Limits and gotchas
 
