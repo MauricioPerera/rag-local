@@ -42,5 +42,10 @@ for (const f of POC_FILES) {
   await copyFile(`rag-poc/${f}`, `${POC}/${f}`);
 }
 
-console.log(`_site listo — index.html + app.js + rag-poc/ (${POC_FILES.length} módulos)`);
+// La app vivió en /rag-web/ en un deploy anterior y algunos bookmarks quedaron
+// ahí; esa ruta llegó a servir el app.js viejo (sin las ops de CRUD por doc).
+// Redirigir /rag-web/* a la raíz —donde vive ahora— para que no confunda.
+await writeFile(`${OUT}/_redirects`, '/rag-web/* / 302\n');
+
+console.log(`_site listo — index.html + app.js + rag-poc/ (${POC_FILES.length} módulos) + _redirects`);
 console.log('functions/ se toma de la raíz del proyecto.');
