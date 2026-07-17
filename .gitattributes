@@ -1,0 +1,6 @@
+# Estos archivos llevan su propio sha256 guardado en rag-poc/llms.txt (lo valida
+# skills.test.mjs). Su hash NO debe depender del checkout: con core.autocrlf=true
+# en Windows salían con CRLF y el hash cambiaba, rompiendo el test solo en esa
+# plataforma. Forzar LF los mantiene byte-idénticos en todos lados.
+rag-poc/skills/**/tool.js text eol=lf
+rag-poc/llms.txt          text eol=lf
