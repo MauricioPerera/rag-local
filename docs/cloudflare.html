@@ -240,7 +240,8 @@ curl -X POST $URL/api/collections/medicina/query \
 
 <span class="tok-c" data-i18n="cU_c2"></span>
 GET    /api/collections
-POST   /api/collections   <span class="tok-c">{name,docs}</span>
+POST   /api/collections           <span class="tok-c">{name,docs}</span>
+POST   /api/collections/:name/docs <span class="tok-c">{docs}  // append</span>
 DELETE /api/collections/:name
 GET    /api/status</pre></div>
       <p class="dim" style="font-size:.86rem" data-i18n="use_note"></p>

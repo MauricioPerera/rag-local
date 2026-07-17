@@ -87,6 +87,7 @@ curl -X POST https://<project>.pages.dev/api/collections/ejemplo/query \
 |---|---|---|
 | GET | `/api/collections` | list |
 | POST | `/api/collections` | create `{name, docs:[{id,md}]}` |
+| POST | `/api/collections/:name/docs` | append `{docs:[{id,md}]}` to an existing collection |
 | DELETE | `/api/collections/:name` | delete |
 | POST | `/api/collections/:name/query` | `{text, k}` |
 | GET | `/api/collections/:name/export` | the raw `.jvsb` |

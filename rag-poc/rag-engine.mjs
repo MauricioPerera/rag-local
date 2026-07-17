@@ -70,6 +70,55 @@ function _assertDim(expected, derived, name) {
   }
 }
 
+// Valida un lote de docs OKF (estructura + parseo + reglas del validador), SIN
+// embeder nada. Devuelve { parsedDocs, errors }: el caller decide si aborta —
+// createCollection y addDocuments comparten exactamente estas reglas.
+function validateOkfDocs(okfDocs) {
+  if (!Array.isArray(okfDocs) || okfDocs.length === 0) {
+    throw new Error('okfDocs debe ser un array no vacío');
+  }
+  const seen = new Set();
+  const errors = [];
+  const parsedDocs = [];
+  for (const doc of okfDocs) {
+    const id = doc && doc.id;
+    if (typeof id !== 'string' || id.length === 0) {
+      errors.push(`id inválido (no es string no vacío): ${JSON.stringify(id)}`);
+      continue;
+    }
+    if (seen.has(id)) {
+      errors.push(`${id}: id duplicado`);
+      continue;
+    }
+    seen.add(id);
+
+    let parsed;
+    try {
+      parsed = parseOKF(doc.md);
+    } catch (e) {
+      errors.push(`${id}: no parsea como OKF (${e.message})`);
+      continue;
+    }
+
+    const reasons = [];
+    if (!parsed.type) reasons.push('type vacío');
+    if (typeof parsed.title !== 'string' || parsed.title.length < 3) {
+      reasons.push(`title demasiado corto (len=${parsed.title ? parsed.title.length : 0})`);
+    }
+    if (typeof parsed.description !== 'string' || parsed.description.length <= 10) {
+      reasons.push(`description demasiado corta (len=${parsed.description ? parsed.description.length : 0}, debe ser > 10)`);
+    }
+    if (!Array.isArray(parsed.tags)) reasons.push('tags no es Array');
+
+    if (reasons.length > 0) {
+      errors.push(`${id}: ${reasons.join('; ')}`);
+      continue;
+    }
+    parsedDocs.push({ id, parsed, md: doc.md });
+  }
+  return { parsedDocs, errors };
+}
+
 export class RagEngine {
   constructor({ embedFn, persistence, dim = 768 }) {
     if (typeof embedFn !== 'function') throw new Error('embedFn es obligatorio');
@@ -94,53 +143,7 @@ export class RagEngine {
     }
 
     // Validación completa ANTES de embeder nada. Si algo falla, no persiste.
-    if (!Array.isArray(okfDocs) || okfDocs.length === 0) {
-      throw new Error('okfDocs debe ser un array no vacío');
-    }
-    const seen = new Set();
-    const errors = [];
-    const parsedDocs = [];
-    for (const doc of okfDocs) {
-      const id = doc && doc.id;
-      if (typeof id !== 'string' || id.length === 0) {
-        errors.push(`id inválido (no es string no vacío): ${JSON.stringify(id)}`);
-        parsedDocs.push(null);
-        continue;
-      }
-      if (seen.has(id)) {
-        errors.push(`${id}: id duplicado`);
-        parsedDocs.push(null);
-        continue;
-      }
-      seen.add(id);
-
-      let parsed;
-      try {
-        parsed = parseOKF(doc.md);
-      } catch (e) {
-        errors.push(`${id}: no parsea como OKF (${e.message})`);
-        parsedDocs.push(null);
-        continue;
-      }
-
-      const reasons = [];
-      if (!parsed.type) reasons.push('type vacío');
-      if (typeof parsed.title !== 'string' || parsed.title.length < 3) {
-        reasons.push(`title demasiado corto (len=${parsed.title ? parsed.title.length : 0})`);
-      }
-      if (typeof parsed.description !== 'string' || parsed.description.length <= 10) {
-        reasons.push(`description demasiado corta (len=${parsed.description ? parsed.description.length : 0}, debe ser > 10)`);
-      }
-      if (!Array.isArray(parsed.tags)) reasons.push('tags no es Array');
-
-      if (reasons.length > 0) {
-        errors.push(`${id}: ${reasons.join('; ')}`);
-        parsedDocs.push(null);
-        continue;
-      }
-      parsedDocs.push({ id, parsed, md: doc.md });
-    }
-
+    const { parsedDocs, errors } = validateOkfDocs(okfDocs);
     if (errors.length > 0) {
       throw new Error(`Colección inválida — docs con error:\n${errors.join('\n')}`);
     }
@@ -168,6 +171,55 @@ export class RagEngine {
     this._cache.set(name, { store, adapter });
 
     return { name, count: store.count('docs') };
+  }
+
+  // Agrega docs a una colección EXISTENTE (append incremental). Mismas reglas
+  // OKF que createCollection. Carga el store, embebe los nuevos, y reescribe el
+  // bundle entero: el .jvsb no se appendea en disco byte-a-byte (no es SQLite),
+  // pero el vector nuevo queda persistido y consultable. Rechaza ids que ya
+  // viven en la colección: append agrega, no pisa (para reemplazar: borrar +
+  // recrear, o usar otro id).
+  async addDocuments(name, okfDocs) {
+    validateName(name);
+
+    const existing = await this.persistence.list();
+    if (!existing.includes(name)) {
+      throw new Error(`La colección no existe: "${name}"`);
+    }
+
+    const { parsedDocs, errors } = validateOkfDocs(okfDocs);
+
+    // Cargar el store existente y cruzar contra sus ids ya presentes.
+    const store = await this._getStore(name);
+    const { adapter } = this._cache.get(name);
+    const manifest = adapter.readJson('docs.q8.json');
+    const existingIds = new Set(manifest && Array.isArray(manifest.ids) ? manifest.ids : []);
+    for (const { id } of parsedDocs) {
+      if (existingIds.has(id)) errors.push(`${id}: ya existe en la colección "${name}"`);
+    }
+
+    if (errors.length > 0) {
+      throw new Error(`No se agregó nada — docs con error:\n${errors.join('\n')}`);
+    }
+
+    for (const { id, parsed, md } of parsedDocs) {
+      const text = composeEmbeddingText(parsed);
+      const vector = await this.embedFn(text, 'document');
+      store.set('docs', id, vector, {
+        title: parsed.title,
+        type: parsed.type,
+        tags: parsed.tags,
+        description: parsed.description,
+        md,
+      });
+    }
+
+    store.flush();
+    const bundle = adapter.toBundle();
+    await this.persistence.save(name, bundle);
+    this._cache.set(name, { store, adapter });
+
+    return { name, added: parsedDocs.length, count: store.count('docs') };
   }
 
   async _getStore(name) {

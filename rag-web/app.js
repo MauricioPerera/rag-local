@@ -332,6 +332,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const OPS = {
   listCollections: (e) => e.listCollections(),
   createCollection: (e, a) => e.createCollection(a.name, a.docs),
+  addDocuments: (e, a) => e.addDocuments(a.name, a.docs),
   deleteCollection: (e, a) => e.deleteCollection(a.name),
   query: (e, a) => e.query(a.name, a.text, a.k ?? 5),
 

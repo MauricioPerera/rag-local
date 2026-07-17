@@ -111,3 +111,48 @@ test('deleteCollection elimina de persistencia', async () => {
   assert.deepEqual(await eng.listCollections(), []);
   await assert.rejects(() => eng.query('animales', 'gato', 1));
 });
+
+test('addDocuments agrega a una coleccion existente y el doc nuevo es consultable', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0], DOCS[1]]); // gato, perro
+  const r = await eng.addDocuments('animales', [DOCS[2]]);    // + auto
+  assert.deepEqual(r, { name: 'animales', added: 1, count: 3 });
+  assert.equal((await eng.query('animales', 'auto electrico', 3))[0].id, 'd-auto');
+  // y los viejos siguen ahi
+  assert.ok((await eng.query('animales', 'gato domestico', 3)).some((h) => h.id === 'd-gato'));
+});
+
+test('addDocuments persiste en el bundle: sobrevive a recargar desde persistencia', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]);          // gato
+  await eng.addDocuments('animales', [DOCS[1]]);              // + perro
+  // engine nuevo, sin cache en memoria: fuerza leer el .jvsb de persistencia
+  const eng2 = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  assert.ok((await eng2.query('animales', 'perro domestico', 3)).some((h) => h.id === 'd-perro'));
+  assert.ok((await eng2.query('animales', 'gato domestico', 3)).some((h) => h.id === 'd-gato'));
+});
+
+test('addDocuments rechaza coleccion inexistente', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await assert.rejects(() => eng.addDocuments('nope', [DOCS[0]]), (e) => e.message.includes('no existe'));
+});
+
+test('addDocuments rechaza id ya existente sin pisar', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]);
+  await assert.rejects(() => eng.addDocuments('animales', [DOCS[0]]), (e) => e.message.includes('ya existe'));
+  assert.equal((await eng.query('animales', 'gato', 5)).filter((h) => h.id === 'd-gato').length, 1);
+});
+
+test('addDocuments rechaza OKF invalido sin agregar nada', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]);
+  const bad = [{ id: 'd-mal', md: '---\ntype: X\ntitle: ab\ndescription: corta\n---\nbody' }];
+  await assert.rejects(() => eng.addDocuments('animales', bad), (e) => e.message.includes('d-mal'));
+  assert.equal((await eng.query('animales', 'gato', 5)).length, 1);
+});
