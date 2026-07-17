@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rag-local — en el navegador</title>
+<style>
+  :root{ --bg:#0b0d10; --panel:#12171d; --line:#252c35; --fg:#e6e6e6; --dim:#8b95a1; --accent:#53e6a6; --bad:#ff6b6b; }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,sans-serif;max-width:880px;margin:0 auto;padding:2rem 1rem 4rem;background:var(--bg);color:var(--fg);line-height:1.5}
+  h1{font-size:1.5rem;margin:0 0 .3rem}
+  h2{font-size:.95rem;margin:0 0 .8rem;color:var(--dim);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .sub{color:var(--dim);margin:0 0 2rem}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1.1rem 1.2rem;margin-bottom:1.2rem}
+  .panel[data-locked="1"]{opacity:.45;pointer-events:none}
+  .hint{color:var(--dim);font-size:.85rem}
+  .bad{color:var(--bad)} .ok{color:var(--accent)}
+  code{background:#0b0d10;padding:.15rem .4rem;border-radius:4px;font-size:.85em;font-family:ui-monospace,Menlo,Consolas,monospace}
+  button{font:inherit;padding:.5rem 1rem;cursor:pointer;border:1px solid var(--line);background:#1b2129;color:var(--fg);border-radius:6px}
+  button:hover:not(:disabled){border-color:#3a444f}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{border-color:#2f6b52;background:#16281f}
+  input,textarea,select{font:inherit;padding:.5rem;background:#0d1116;color:var(--fg);border:1px solid var(--line);border-radius:6px}
+  input,select{min-width:170px}
+  textarea{width:100%;min-height:70px;resize:vertical}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.6rem}
+  table{border-collapse:collapse;width:100%;font-size:.85rem;margin-top:.6rem}
+  td,th{padding:.35rem .5rem;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--dim);font-weight:600}
+  .hit{padding:.6rem .8rem;background:#0d1116;border:1px solid var(--line);border-radius:6px;margin-top:.5rem;font-size:.88rem}
+  .hit .meta{color:var(--dim);font-size:.8rem;margin-bottom:.25rem}
+  .score{float:right;font-family:ui-monospace,monospace;color:var(--accent)}
+  .start{margin-top:1rem;padding:.9rem 1rem;background:#0e1a15;border:1px solid #2f6b52;border-radius:8px}
+  .bar{height:6px;background:#0d1116;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--accent);transition:width .15s linear}
+  #modelProgress table{margin-top:.7rem}
+  #modelProgress td{border-bottom:none;padding:.2rem .5rem}
+  .err{white-space:pre-line;background:#2a1416;border:1px solid #5c2b2f;color:#ffb4b4;
+       border-radius:6px;padding:.7rem .9rem;margin-top:.7rem;font-size:.85rem;
+       font-family:ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body>
+  <h1>rag-local <span class="hint">— en el navegador</span></h1>
+  <p class="sub">El mismo engine que <code>rag-server.mjs</code>, corriendo entero en tu navegador.
+  Las colecciones son archivos <code>.jvsb</code> en <strong>una carpeta tuya</strong> — las mismas que usa el servidor Node.</p>
+
+  <div class="panel">
+    <h2>1 · Carpeta de colecciones</h2>
+    <div class="row">
+      <button id="pickBtn" class="primary" type="button">ELEGIR CARPETA…</button>
+      <span id="dirStatus" class="hint">ninguna carpeta elegida</span>
+    </div>
+    <p class="hint" style="margin:.7rem 0 0">Elegí la misma <code>rag-node/collections/</code> que usa tu servidor y trabajás sobre las mismas colecciones.
+    Requiere Chromium (File System Access). Hay que elegirla una vez por sesión.</p>
+  </div>
+
+  <div class="panel" id="modelPanel" data-locked="1">
+    <h2>2 · Modelo de embeddings</h2>
+    <div class="row">
+      <button id="loadBtn" class="primary" type="button">CARGAR MODELO</button>
+      <select id="deviceSel">
+        <option value="">device: automático</option>
+        <option value="webgpu">device: webgpu</option>
+        <option value="wasm">device: wasm</option>
+      </select>
+      <span id="modelStatus" class="hint">sin cargar</span>
+    </div>
+    <div id="modelProgress"></div>
+    <p class="hint" style="margin:.7rem 0 0">Primera vez: ~309 MB (<code>embeddinggemma-300m</code>, q8) desde Hugging Face; después queda cacheado.
+    Sin WebGPU cae a WASM: más lento, pero anda.</p>
+  </div>
+
+  <div class="panel" id="colPanel" data-locked="1">
+    <h2>3 · Colecciones</h2>
+    <div class="row">
+      <button id="refreshBtn" type="button">actualizar</button>
+      <span id="colStatus" class="hint"></span>
+    </div>
+    <div id="colError" class="err" hidden></div>
+    <table id="colTable"></table>
+
+    <div class="row" style="margin-top:1rem">
+      <input id="newName" placeholder="nombre-nuevo" pattern="[a-z0-9][a-z0-9-]*">
+      <button id="createBtn" type="button">CREAR desde archivos .md…</button>
+    </div>
+
+    <div class="start">
+      <strong>¿Primera vez? Empezá por acá.</strong>
+      <div class="row">
+        <button id="demoBtn" class="primary" type="button">CREAR COLECCIÓN DE EJEMPLO (10 docs)</button>
+        <button id="templateBtn" type="button">descargar plantilla .md</button>
+      </div>
+      <p class="hint" style="margin:.5rem 0 0">La de ejemplo usa el corpus que ya viene en el repo: te deja algo que consultar en un clic.
+      La plantilla es un <code>.md</code> válido para editar y armar la tuya. (Una colección vacía no se puede: el engine pide al menos un documento.)</p>
+    </div>
+    <details style="margin-top:.6rem">
+      <summary class="hint">Qué exige el formato OKF (si falla, te dice qué doc y por qué)</summary>
+      <table style="margin-top:.5rem">
+        <tr><td><code>type</code></td><td>no vacío</td></tr>
+        <tr><td><code>title</code></td><td>3 caracteres o más</td></tr>
+        <tr><td><code>description</code></td><td>más de 10 caracteres</td></tr>
+        <tr><td><code>tags</code></td><td>lista: <code>[alfa, beta]</code></td></tr>
+      </table>
+      <pre style="background:#080a0d;border:1px solid var(--line);border-radius:6px;padding:.7rem;overflow-x:auto;font-size:.78rem">---
+type: Nota técnica
+title: Los gatos domésticos
+description: Todo sobre el gato y sus costumbres.
+tags: [gato, mascotas]
+---
+
+# Resumen
+
+El gato duerme en el sofá.</pre>
+    </details>
+  </div>
+
+  <div class="panel" id="queryPanel" data-locked="1">
+    <h2>4 · Consultar</h2>
+    <div class="row">
+      <select id="qCol"></select>
+      <input id="qK" type="number" value="5" min="1" max="50" style="min-width:70px">
+    </div>
+    <div class="row"><textarea id="qText" placeholder="¿Qué querés buscar?"></textarea></div>
+    <div class="row"><button id="queryBtn" class="primary" type="button">BUSCAR</button><span id="qStatus" class="hint"></span></div>
+    <div id="qError" class="err" hidden></div>
+    <div id="hits"></div>
+  </div>
+
+  <div class="panel">
+    <h2>5 · API worker</h2>
+    <div class="row">
+      <label><input type="checkbox" id="workerToggle" checked> mientras esta pestaña esté abierta, atiende la API</label>
+    </div>
+    <div class="row">
+      <input type="password" id="secretField" placeholder="API_SECRET" autocomplete="off" style="flex:1;min-width:200px">
+      <button type="button" id="saveSecret">guardar</button>
+    </div>
+    <div class="hint" id="workerStatus" style="margin-top:.5rem">esperando carpeta + modelo</div>
+    <details style="margin-top:.7rem">
+      <summary class="hint">La API (mismo contrato REST que rag-server.mjs)</summary>
+      <pre style="background:#080a0d;border:1px solid var(--line);border-radius:6px;padding:.7rem;overflow-x:auto;font-size:.78rem">curl -X POST https://<span class="apiHost">tu-proyecto.pages.dev</span>/api/collections/ejemplo/query   -H "Authorization: Bearer $API_SECRET"   -H 'Content-Type: application/json'   -d '{"text":"diagnostico medico","k":3}'
+
+GET    /api/collections                  lista
+POST   /api/collections {name,docs}      crear
+DELETE /api/collections/:name            borrar
+POST   /api/collections/:name/query      consultar {text,k}
+GET    /api/status                       ¿hay pestaña? ¿lista?</pre>
+      <p class="hint">Los vectores nunca salen de tu máquina. La consulta y los chunks que vuelven sí pasan por Cloudflare.</p>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>6 · Tu dispositivo</h2>
+    <div id="devReport" class="hint">comprobando…</div>
+  </div>
+
+  <script src="../rag-poc/js-vector-store.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
