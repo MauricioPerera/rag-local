@@ -156,3 +156,65 @@ test('addDocuments rechaza OKF invalido sin agregar nada', async () => {
   await assert.rejects(() => eng.addDocuments('animales', bad), (e) => e.message.includes('d-mal'));
   assert.equal((await eng.query('animales', 'gato', 5)).length, 1);
 });
+
+test('updateDocument reemplaza el contenido y el query lo refleja', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0], DOCS[2]]); // gato, auto
+  // d-gato pasa a hablar de perro
+  const nuevo = okfDoc('d-gato', 'Ahora perro', 'Un doc que ahora habla del perro domestico.', ['perro']).md;
+  const r = await eng.updateDocument('animales', 'd-gato', nuevo);
+  assert.deepEqual(r, { name: 'animales', id: 'd-gato', count: 2 });
+  const hits = await eng.query('animales', 'perro domestico', 2);
+  assert.equal(hits[0].id, 'd-gato');
+  assert.equal(hits[0].title, 'Ahora perro');
+});
+
+test('updateDocument persiste: sobrevive a recargar desde persistencia', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0], DOCS[2]]);
+  const nuevo = okfDoc('d-gato', 'Editado', 'Descripcion editada mas larga que diez.', ['perro']).md;
+  await eng.updateDocument('animales', 'd-gato', nuevo);
+  const eng2 = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  const hits = await eng2.query('animales', 'perro domestico', 2);
+  assert.ok(hits.some((h) => h.id === 'd-gato' && h.title === 'Editado'));
+});
+
+test('updateDocument rechaza doc/coleccion inexistente y OKF invalido', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]);
+  await assert.rejects(() => eng.updateDocument('animales', 'd-nope', DOCS[1].md), (e) => e.message.includes('no existe'));
+  await assert.rejects(() => eng.updateDocument('nope', 'd-gato', DOCS[0].md), (e) => e.message.includes('no existe'));
+  await assert.rejects(() => eng.updateDocument('animales', 'd-gato', '---\ntype: X\ntitle: ab\ndescription: corta\n---\nbody'), (e) => e.message.includes('d-gato'));
+});
+
+test('removeDocument borra un doc y deja el resto consultable', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', DOCS); // 3
+  const r = await eng.removeDocument('animales', 'd-auto');
+  assert.deepEqual(r, { name: 'animales', id: 'd-auto', count: 2 });
+  assert.ok(!(await eng.query('animales', 'auto', 5)).some((h) => h.id === 'd-auto'));
+  assert.ok((await eng.query('animales', 'gato', 5)).some((h) => h.id === 'd-gato'));
+});
+
+test('removeDocument persiste: sobrevive a recargar desde persistencia', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', DOCS);
+  await eng.removeDocument('animales', 'd-auto');
+  const eng2 = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  assert.ok(!(await eng2.query('animales', 'auto', 5)).some((h) => h.id === 'd-auto'));
+  assert.ok((await eng2.query('animales', 'perro', 5)).some((h) => h.id === 'd-perro'));
+});
+
+test('removeDocument rechaza doc inexistente, coleccion inexistente y el ultimo doc', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]); // 1 doc
+  await assert.rejects(() => eng.removeDocument('animales', 'd-nope'), (e) => e.message.includes('no existe'));
+  await assert.rejects(() => eng.removeDocument('nope', 'd-gato'), (e) => e.message.includes('no existe'));
+  await assert.rejects(() => eng.removeDocument('animales', 'd-gato'), (e) => e.message.includes('último'));
+});

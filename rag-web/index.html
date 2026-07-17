@@ -144,7 +144,9 @@ El gato duerme en el sofá.</pre>
 GET    /api/collections                  lista
 POST   /api/collections {name,docs}      crear
 POST   /api/collections/:name/docs {docs} agregar docs (append)
-DELETE /api/collections/:name            borrar
+PUT    /api/collections/:name/docs/:id {md} editar un doc
+DELETE /api/collections/:name/docs/:id   borrar un doc
+DELETE /api/collections/:name            borrar la colección
 POST   /api/collections/:name/query      consultar {text,k}
 GET    /api/status                       ¿hay pestaña? ¿lista?</pre>
       <p class="hint">Los vectores nunca salen de tu máquina. La consulta y los chunks que vuelven sí pasan por Cloudflare.</p>

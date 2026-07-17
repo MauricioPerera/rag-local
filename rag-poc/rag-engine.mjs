@@ -222,6 +222,80 @@ export class RagEngine {
     return { name, added: parsedDocs.length, count: store.count('docs') };
   }
 
+  // Reemplaza el contenido de un doc EXISTENTE (editar). Mismas reglas OKF.
+  // Re-embebe con el nuevo md y sobrescribe (store.set es upsert), luego
+  // reescribe el bundle. Para agregar uno nuevo se usa addDocuments.
+  async updateDocument(name, id, md) {
+    validateName(name);
+
+    const existing = await this.persistence.list();
+    if (!existing.includes(name)) {
+      throw new Error(`La colección no existe: "${name}"`);
+    }
+
+    const { parsedDocs, errors } = validateOkfDocs([{ id, md }]);
+    if (errors.length > 0) {
+      throw new Error(`Doc inválido:\n${errors.join('\n')}`);
+    }
+
+    const store = await this._getStore(name);
+    const { adapter } = this._cache.get(name);
+    const manifest = adapter.readJson('docs.q8.json');
+    const ids = new Set(manifest && Array.isArray(manifest.ids) ? manifest.ids : []);
+    if (!ids.has(id)) {
+      throw new Error(`El doc no existe en "${name}": "${id}" (para agregar uno nuevo usá POST /api/collections/${name}/docs)`);
+    }
+
+    const { parsed } = parsedDocs[0];
+    const vector = await this.embedFn(composeEmbeddingText(parsed), 'document');
+    store.set('docs', id, vector, {
+      title: parsed.title,
+      type: parsed.type,
+      tags: parsed.tags,
+      description: parsed.description,
+      md,
+    });
+
+    store.flush();
+    await this.persistence.save(name, adapter.toBundle());
+    this._cache.set(name, { store, adapter });
+
+    return { name, id, count: store.count('docs') };
+  }
+
+  // Borra un doc de la colección. Rechaza el último: una colección vacía no es
+  // válida (el bundle no tiene dim derivable y query rompería) — para eso está
+  // deleteCollection.
+  async removeDocument(name, id) {
+    validateName(name);
+
+    const existing = await this.persistence.list();
+    if (!existing.includes(name)) {
+      throw new Error(`La colección no existe: "${name}"`);
+    }
+
+    const store = await this._getStore(name);
+    const { adapter } = this._cache.get(name);
+    const manifest = adapter.readJson('docs.q8.json');
+    const ids = manifest && Array.isArray(manifest.ids) ? manifest.ids : [];
+    if (!ids.includes(id)) {
+      throw new Error(`El doc no existe en "${name}": "${id}"`);
+    }
+    if (ids.length <= 1) {
+      throw new Error(`No se puede borrar el último doc de "${name}" (una colección vacía no es válida). Borrá la colección entera con DELETE /api/collections/${name}.`);
+    }
+
+    if (!store.remove('docs', id)) {
+      throw new Error(`no se pudo borrar el doc "${id}" de "${name}"`);
+    }
+
+    store.flush();
+    await this.persistence.save(name, adapter.toBundle());
+    this._cache.set(name, { store, adapter });
+
+    return { name, id, count: store.count('docs') };
+  }
+
   async _getStore(name) {
     const cached = this._cache.get(name);
     if (cached) return cached.store;
