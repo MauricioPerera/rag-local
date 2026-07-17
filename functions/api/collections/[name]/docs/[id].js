@@ -1,9 +1,10 @@
-// PUT    /api/collections/:name/docs/:id  { md }  -> editar (reemplaza ese doc)
+// PUT    /api/collections/:name/docs/:id  { md }  -> upsert (crea o reemplaza)
 // DELETE /api/collections/:name/docs/:id          -> borrar ese doc
 //
 // CRUD por documento sobre una colección existente. La pestaña carga el índice,
-// aplica el cambio y reescribe el .jvsb. Editar exige que el id exista (para
-// agregar uno nuevo: POST …/docs). Borrar rechaza el último doc de la colección.
+// aplica el cambio y reescribe el .jvsb. PUT hace upsert: si el id existe lo
+// reemplaza, si no lo crea (la respuesta trae `created`). Borrar rechaza el
+// último doc de la colección.
 
 import { checkAuth } from '../../../_auth.js';
 import { rpc } from '../../../_rpc.js';

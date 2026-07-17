@@ -222,9 +222,9 @@ export class RagEngine {
     return { name, added: parsedDocs.length, count: store.count('docs') };
   }
 
-  // Reemplaza el contenido de un doc EXISTENTE (editar). Mismas reglas OKF.
-  // Re-embebe con el nuevo md y sobrescribe (store.set es upsert), luego
-  // reescribe el bundle. Para agregar uno nuevo se usa addDocuments.
+  // Upsert de un doc por id: si existe lo reemplaza, si no lo crea (store.set es
+  // upsert). Mismas reglas OKF. Re-embebe con el nuevo md y reescribe el bundle.
+  // `created` en la respuesta distingue alta de edición.
   async updateDocument(name, id, md) {
     validateName(name);
 
@@ -242,9 +242,7 @@ export class RagEngine {
     const { adapter } = this._cache.get(name);
     const manifest = adapter.readJson('docs.q8.json');
     const ids = new Set(manifest && Array.isArray(manifest.ids) ? manifest.ids : []);
-    if (!ids.has(id)) {
-      throw new Error(`El doc no existe en "${name}": "${id}" (para agregar uno nuevo usá POST /api/collections/${name}/docs)`);
-    }
+    const created = !ids.has(id);
 
     const { parsed } = parsedDocs[0];
     const vector = await this.embedFn(composeEmbeddingText(parsed), 'document');
@@ -260,7 +258,7 @@ export class RagEngine {
     await this.persistence.save(name, adapter.toBundle());
     this._cache.set(name, { store, adapter });
 
-    return { name, id, count: store.count('docs') };
+    return { name, id, created, count: store.count('docs') };
   }
 
   // Borra un doc de la colección. Rechaza el último: una colección vacía no es

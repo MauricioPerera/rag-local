@@ -88,7 +88,7 @@ curl -X POST https://<project>.pages.dev/api/collections/ejemplo/query \
 | GET | `/api/collections` | list |
 | POST | `/api/collections` | create `{name, docs:[{id,md}]}` |
 | POST | `/api/collections/:name/docs` | append `{docs:[{id,md}]}` to an existing collection |
-| PUT | `/api/collections/:name/docs/:id` | edit one doc `{md}` (must exist) |
+| PUT | `/api/collections/:name/docs/:id` | upsert one doc `{md}` (create or replace) |
 | DELETE | `/api/collections/:name/docs/:id` | delete one doc (refuses the last one) |
 | DELETE | `/api/collections/:name` | delete the whole collection |
 | POST | `/api/collections/:name/query` | `{text, k}` |

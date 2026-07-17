@@ -144,7 +144,7 @@ El gato duerme en el sofá.</pre>
 GET    /api/collections                  lista
 POST   /api/collections {name,docs}      crear
 POST   /api/collections/:name/docs {docs} agregar docs (append)
-PUT    /api/collections/:name/docs/:id {md} editar un doc
+PUT    /api/collections/:name/docs/:id {md} crear/editar un doc (upsert)
 DELETE /api/collections/:name/docs/:id   borrar un doc
 DELETE /api/collections/:name            borrar la colección
 POST   /api/collections/:name/query      consultar {text,k}

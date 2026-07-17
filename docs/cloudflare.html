@@ -242,7 +242,7 @@ curl -X POST $URL/api/collections/medicina/query \
 GET    /api/collections
 POST   /api/collections            <span class="tok-c">{name,docs}</span>
 POST   /api/collections/:name/docs  <span class="tok-c">{docs}  // append</span>
-PUT    /api/collections/:name/docs/:id <span class="tok-c">{md}  // edit</span>
+PUT    /api/collections/:name/docs/:id <span class="tok-c">{md}  // upsert</span>
 DELETE /api/collections/:name/docs/:id <span class="tok-c">// del doc</span>
 DELETE /api/collections/:name
 GET    /api/status</pre></div>

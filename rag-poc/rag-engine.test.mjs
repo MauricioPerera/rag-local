@@ -164,7 +164,7 @@ test('updateDocument reemplaza el contenido y el query lo refleja', async () => 
   // d-gato pasa a hablar de perro
   const nuevo = okfDoc('d-gato', 'Ahora perro', 'Un doc que ahora habla del perro domestico.', ['perro']).md;
   const r = await eng.updateDocument('animales', 'd-gato', nuevo);
-  assert.deepEqual(r, { name: 'animales', id: 'd-gato', count: 2 });
+  assert.deepEqual(r, { name: 'animales', id: 'd-gato', created: false, count: 2 });
   const hits = await eng.query('animales', 'perro domestico', 2);
   assert.equal(hits[0].id, 'd-gato');
   assert.equal(hits[0].title, 'Ahora perro');
@@ -181,11 +181,19 @@ test('updateDocument persiste: sobrevive a recargar desde persistencia', async (
   assert.ok(hits.some((h) => h.id === 'd-gato' && h.title === 'Editado'));
 });
 
-test('updateDocument rechaza doc/coleccion inexistente y OKF invalido', async () => {
+test('updateDocument hace upsert: crea si el id no existe (created:true)', async () => {
+  const p = memPersistence();
+  const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
+  await eng.createCollection('animales', [DOCS[0]]); // gato
+  const r = await eng.updateDocument('animales', 'd-perro', DOCS[1].md); // id nuevo
+  assert.deepEqual(r, { name: 'animales', id: 'd-perro', created: true, count: 2 });
+  assert.ok((await eng.query('animales', 'perro domestico', 3)).some((h) => h.id === 'd-perro'));
+});
+
+test('updateDocument rechaza coleccion inexistente y OKF invalido', async () => {
   const p = memPersistence();
   const eng = new RagEngine({ embedFn, persistence: p, dim: DIM });
   await eng.createCollection('animales', [DOCS[0]]);
-  await assert.rejects(() => eng.updateDocument('animales', 'd-nope', DOCS[1].md), (e) => e.message.includes('no existe'));
   await assert.rejects(() => eng.updateDocument('nope', 'd-gato', DOCS[0].md), (e) => e.message.includes('no existe'));
   await assert.rejects(() => eng.updateDocument('animales', 'd-gato', '---\ntype: X\ntitle: ab\ndescription: corta\n---\nbody'), (e) => e.message.includes('d-gato'));
 });
