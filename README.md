@@ -10,6 +10,12 @@ it delegates retrieval to `rag-local`.
 - **Shared engine** (`rag-poc/`): `rag-engine.mjs` + the OKF parser, the vendored
   `js-vector-store`, the CLI, and a **reference browser POC** running the same
   engine under LiteRT.js/WebGPU.
+- **Browser runtime** (`rag-web/`): the same engine in a tab — embeddings via
+  transformers.js, collections as `.jvsb` in a folder you pick with File System
+  Access. Byte-compatible with `rag-node/collections/`, so you can index in Node
+  and query in the browser. Optional Cloudflare Pages Functions expose that tab
+  over **the same REST contract** as `rag-server.mjs`. See
+  [rag-web/README.md](rag-web/README.md).
 
 Node v24. MIT licensed.
 

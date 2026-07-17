@@ -11,6 +11,10 @@ node_modules/
 # Runtime artifacts (downloaded models + persisted collections)
 rag-node/models/
 rag-node/collections/
+/collections/
+
+# Wrangler local dev cache (rag-web Functions)
+.wrangler/
 
 # Logs
 *.log
