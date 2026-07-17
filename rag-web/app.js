@@ -111,6 +111,7 @@ function maybeBuildEngine() {
   if (!dirHandle || !embedFn) return;
   engine = new RagEngine({ embedFn, persistence: fsaPersistence(dirHandle) });
   unlock('colPanel', true);
+  unlock('docPanel', true);
   unlock('queryPanel', true);
   refresh();
 }
@@ -138,7 +139,9 @@ async function refresh() {
   $('colTable').querySelectorAll('[data-del]').forEach((b) =>
     b.addEventListener('click', () => del(b.getAttribute('data-del'))));
 
-  $('qCol').innerHTML = names.map((n) => `<option>${n}</option>`).join('');
+  const opts = names.map((n) => `<option>${n}</option>`).join('');
+  $('qCol').innerHTML = opts;
+  $('docCol').innerHTML = opts;
 }
 
 $('refreshBtn').addEventListener('click', refresh);
@@ -277,6 +280,73 @@ $('queryBtn').addEventListener('click', async () => {
       <div class="meta">${h.id ?? ''}${h.title ? ' · ' + h.title : ''}</div>
       <div>${(h.text ?? h.chunk ?? '').slice(0, 400)}</div>
     </div>`).join('');
+});
+
+// ── 4b · documentos (CRUD) ───────────────────────────────────────────────────
+// Mismo engine que la API: addDocuments / updateDocument / removeDocument sobre
+// una colección existente. La API no hace nada más que esto detrás del buzón.
+
+const DOC_EJEMPLO = `---
+type: Ficha
+title: El gato siamés
+description: Rasgos del gato siamés y su carácter vocal.
+tags: [gato, razas]
+---
+
+# Resumen
+
+El siamés es muy vocal y sociable; reclama atención.`;
+
+$('docFillBtn').addEventListener('click', () => {
+  if (!$('docId').value.trim()) $('docId').value = 'gato-siames';
+  $('docMd').value = DOC_EJEMPLO;
+});
+
+// Requiere colección elegida + id + md. Devuelve {id, md} listo o null (y muestra el error).
+function readDocInput() {
+  clearError($('docError'));
+  const name = $('docCol').value;
+  const id = $('docId').value.trim();
+  const md = $('docMd').value;
+  if (!name) { showError($('docError'), 'Elegí una colección.'); return null; }
+  if (!id) { showError($('docError'), 'Falta el id del documento.'); return null; }
+  if (!md.trim()) { showError($('docError'), 'Falta el documento OKF (usá "rellenar ejemplo").'); return null; }
+  return { name, id, md };
+}
+
+$('docAppendBtn').addEventListener('click', async () => {
+  const d = readDocInput();
+  if (!d) return;
+  $('docStatus').textContent = 'agregando…';
+  try {
+    const r = await engine.addDocuments(d.name, [{ id: d.id, md: d.md }]);
+    $('docStatus').innerHTML = `<span class="ok">agregado</span> "${d.id}" — la colección tiene ${r.count} doc(s)`;
+  } catch (e) { $('docStatus').textContent = ''; showError($('docError'), e); }
+});
+
+$('docUpsertBtn').addEventListener('click', async () => {
+  const d = readDocInput();
+  if (!d) return;
+  $('docStatus').textContent = 'guardando…';
+  try {
+    const r = await engine.updateDocument(d.name, d.id, d.md);
+    $('docStatus').innerHTML = `<span class="ok">${r.created ? 'creado' : 'editado'}</span> "${d.id}" — ${r.count} doc(s)`;
+  } catch (e) { $('docStatus').textContent = ''; showError($('docError'), e); }
+});
+
+$('docDelBtn').addEventListener('click', async () => {
+  clearError($('docError'));
+  const name = $('docCol').value;
+  const id = $('docDelId').value.trim();
+  if (!name) { showError($('docError'), 'Elegí una colección.'); return; }
+  if (!id) { showError($('docError'), 'Escribí el id a borrar.'); return; }
+  if (!confirm(`¿Borrar el doc "${id}" de la colección "${name}"?`)) return;
+  $('docStatus').textContent = 'borrando…';
+  try {
+    const r = await engine.removeDocument(name, id);
+    $('docStatus').innerHTML = `<span class="ok">borrado</span> "${id}" — quedan ${r.count} doc(s)`;
+    $('docDelId').value = '';
+  } catch (e) { $('docStatus').textContent = ''; showError($('docError'), e); }
 });
 
 // ── 5 · dispositivo ────────────────────────────────────────────────────────

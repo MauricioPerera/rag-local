@@ -115,8 +115,34 @@ El gato duerme en el sofá.</pre>
     </details>
   </div>
 
+  <div class="panel" id="docPanel" data-locked="1">
+    <h2>4 · Documentos (CRUD)</h2>
+    <p class="hint" style="margin:0 0 .7rem">Agregar, editar o borrar documentos sueltos de una colección <strong>ya existente</strong>, sin recrearla. Es el mismo CRUD que expone la API (<code>POST/PUT/DELETE …/docs</code>).</p>
+    <div class="row">
+      <select id="docCol"></select>
+      <span id="docStatus" class="hint"></span>
+    </div>
+    <div id="docError" class="err" hidden></div>
+
+    <div class="row" style="margin-top:.7rem">
+      <input id="docId" placeholder="id-del-doc" style="min-width:170px">
+      <button id="docFillBtn" type="button">rellenar ejemplo</button>
+    </div>
+    <div class="row"><textarea id="docMd" placeholder="documento OKF: --- type/title/description/tags --- + cuerpo"></textarea></div>
+    <div class="row">
+      <button id="docAppendBtn" class="primary" type="button">AGREGAR (append)</button>
+      <button id="docUpsertBtn" type="button">CREAR/EDITAR (upsert)</button>
+    </div>
+
+    <div class="row" style="margin-top:.9rem;border-top:1px solid var(--line);padding-top:.9rem">
+      <input id="docDelId" placeholder="id-a-borrar" style="min-width:170px">
+      <button id="docDelBtn" type="button">BORRAR DOC</button>
+      <span class="hint">no se puede borrar el último doc de una colección</span>
+    </div>
+  </div>
+
   <div class="panel" id="queryPanel" data-locked="1">
-    <h2>4 · Consultar</h2>
+    <h2>5 · Consultar</h2>
     <div class="row">
       <select id="qCol"></select>
       <input id="qK" type="number" value="5" min="1" max="50" style="min-width:70px">
@@ -128,7 +154,7 @@ El gato duerme en el sofá.</pre>
   </div>
 
   <div class="panel">
-    <h2>5 · API worker</h2>
+    <h2>6 · API worker</h2>
     <div class="row">
       <label><input type="checkbox" id="workerToggle" checked> mientras esta pestaña esté abierta, atiende la API</label>
     </div>
@@ -154,7 +180,7 @@ GET    /api/status                       ¿hay pestaña? ¿lista?</pre>
   </div>
 
   <div class="panel">
-    <h2>6 · Tu dispositivo</h2>
+    <h2>7 · Tu dispositivo</h2>
     <div id="devReport" class="hint">comprobando…</div>
   </div>
 
