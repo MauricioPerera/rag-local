@@ -239,18 +239,20 @@ curl -X POST $URL/api/collections/medicina/query \
 <span class="tok-c">→ {"hits":[{"score":0.89,"doc":…}]}</span>
 
 <span class="tok-c" data-i18n="cU_c2"></span>
-GET    /api/collections
-POST   /api/collections            <span class="tok-c">{name,docs}</span>
-POST   /api/collections/:name/docs  <span class="tok-c">{docs}  // append</span>
-PUT    /api/collections/:name/docs/:id <span class="tok-c">{md}  // upsert</span>
-DELETE /api/collections/:name/docs/:id <span class="tok-c">// del doc</span>
-DELETE /api/collections/:name
-GET    /api/status</pre></div>
+GET    /api/collections                <span class="tok-c">// listar</span>
+POST   /api/collections                <span class="tok-c">{name,docs}  // crear</span>
+POST   /api/collections/:name/docs     <span class="tok-c">{docs}  // agregar (append)</span>
+PUT    /api/collections/:name/docs/:id <span class="tok-c">{md}  // crear/editar (upsert)</span>
+DELETE /api/collections/:name/docs/:id <span class="tok-c">// borrar un doc</span>
+DELETE /api/collections/:name          <span class="tok-c">// borrar la colección</span>
+POST   /api/collections/:name/query    <span class="tok-c">{text,k}  // consultar</span>
+GET    /api/status                     <span class="tok-c">// ¿pestaña lista?</span></pre></div>
       <p class="dim" style="font-size:.86rem" data-i18n="use_note"></p>
     </div>
     <div class="reveal">
       <p class="eyebrow" style="margin-bottom:.8rem" data-i18n="use_side_cap"></p>
       <div class="cards" style="grid-template-columns:1fr">
+        <div class="card"><h3 style="font-size:1.15rem" data-i18n="feat3h"></h3><p data-i18n="feat3p"></p></div>
         <div class="card"><h3 style="font-size:1.15rem" data-i18n="feat1h"></h3><p data-i18n="feat1p"></p></div>
         <div class="card"><h3 style="font-size:1.15rem" data-i18n="feat2h"></h3><p data-i18n="feat2p"></p></div>
       </div>
@@ -332,6 +334,7 @@ const I18N = {
     cU_c1:"# consultar una colección", cU_c2:"# resto del contrato",
     use_note:"Todos los endpoints piden el secreto y fallan cerrados si falta. Crear una colección grande tarda lo que tarde embeber sus documentos.",
     use_side_cap:"El contrato completo:",
+    feat3h:"CRUD por documento", feat3p:"Sin recrear la colección: <code>POST …/docs</code> agrega, <code>PUT …/docs/:id</code> crea o edita (upsert), <code>DELETE …/docs/:id</code> borra un doc. La KB crece y se mantiene por API.",
     feat1h:"Compatible con el CLI", feat1p:"<code>rag-cli.mjs</code> habla con esta API igual que con el servidor Node: apuntás <code>RAG_BASE_URL</code> a tu <code>.pages.dev</code> y listo.",
     feat2h:"Importar / exportar", feat2p:"Las colecciones son portables: exportás un <code>.jvsb</code> desde una instancia y lo importás en otra, byte-idéntico.",
     req_eyebrow:"¿Tu equipo puede?", req_h:"Casi siempre sí — con WebGPU vuela, sin él igual anda.",
@@ -396,6 +399,7 @@ const I18N = {
     cU_c1:"# query a collection", cU_c2:"# rest of the contract",
     use_note:"Every endpoint requires the secret and fails closed without it. Creating a large collection takes as long as embedding its documents.",
     use_side_cap:"The full contract:",
+    feat3h:"Per-document CRUD", feat3p:"No need to rebuild the collection: <code>POST …/docs</code> appends, <code>PUT …/docs/:id</code> creates or edits (upsert), <code>DELETE …/docs/:id</code> removes a doc. The KB grows and is maintained over the API.",
     feat1h:"Works with the CLI", feat1p:"<code>rag-cli.mjs</code> talks to this API just like the Node server: point <code>RAG_BASE_URL</code> at your <code>.pages.dev</code> and go.",
     feat2h:"Import / export", feat2p:"Collections are portable: export a <code>.jvsb</code> from one instance and import it into another, byte-identical.",
     req_eyebrow:"Can your machine run it?", req_h:"Almost always yes — flies with WebGPU, still works without it.",
@@ -460,6 +464,7 @@ const I18N = {
     cU_c1:"# consultar uma coleção", cU_c2:"# resto do contrato",
     use_note:"Todos os endpoints pedem o segredo e falham fechados se faltar. Criar uma coleção grande demora o que demorar para fazer o embedding dos documentos.",
     use_side_cap:"O contrato completo:",
+    feat3h:"CRUD por documento", feat3p:"Sem recriar a coleção: <code>POST …/docs</code> adiciona, <code>PUT …/docs/:id</code> cria ou edita (upsert), <code>DELETE …/docs/:id</code> apaga um doc. A KB cresce e é mantida pela API.",
     feat1h:"Compatível com o CLI", feat1p:"<code>rag-cli.mjs</code> fala com esta API igual ao servidor Node: aponte <code>RAG_BASE_URL</code> para seu <code>.pages.dev</code> e pronto.",
     feat2h:"Importar / exportar", feat2p:"As coleções são portáveis: exporte um <code>.jvsb</code> de uma instância e importe em outra, byte-idêntico.",
     req_eyebrow:"Sua máquina aguenta?", req_h:"Quase sempre sim — voa com WebGPU, funciona mesmo sem ele.",
