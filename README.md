@@ -70,6 +70,38 @@ The server is stateless across restarts: collections persist as
 | GET    | `/` , `/ui/*`                         | admin Web UI                  |
 | GET    | `/llms.txt`, `/skills/*`              | static MCP skill assets       |
 
+## Deploy to Cloudflare Pages (browser + HTTP API)
+
+**🌳 [Overview & guide (ES / EN / PT) →](https://mauricioperera.github.io/rag-local/cloudflare.html)** —
+an illustrated walkthrough with a live device check.
+
+This repo is also a **ready-to-deploy Cloudflare Pages template**. The same
+engine runs entirely in a browser tab (embeddings via transformers.js, `.jvsb`
+collections in a folder you pick), and Pages Functions relay HTTP requests to
+that tab over **the same REST contract** as `rag-server.mjs`. Nothing runs on a
+server; the free plan is enough.
+
+```bash
+git clone https://github.com/MauricioPerera/rag-local
+cd rag-local && npm install
+
+npx wrangler pages project create rag-local
+npx wrangler pages secret put API_SECRET      # a secret you choose
+npm run deploy                                # build.mjs assembles _site, then deploys
+```
+
+Or connect the repo in the dashboard: **Workers & Pages → Create → Pages →
+Connect to Git**, build command `npm run build`, output directory `_site`, then
+add `API_SECRET` and redeploy (a Pages secret only reaches deployments made
+*after* it exists).
+
+`build.mjs` copies the browser engine from `rag-poc/` into `_site/` and fixes
+the relative paths — nothing third-party is vendored; the embedding model is
+downloaded by the browser from Hugging Face on first use. `functions/api/`
+mirrors the REST surface below. Open your `*.pages.dev`, pick a folder, load the
+model, paste your `API_SECRET` into the **API worker** panel — while that tab is
+open, the API is live. See [rag-web/README.md](rag-web/README.md) for details.
+
 ## CLI
 
 The CLI (`rag-poc/rag-cli.mjs`) talks to the running server over REST. Run it

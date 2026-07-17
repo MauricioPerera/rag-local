@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rag-local · Cloudflare Pages</title>
+<meta name="description" content="Tu RAG local — embeddings en el navegador, colecciones en tu carpeta — expuesto como API HTTP en Cloudflare Pages. Gratis, sin servidor.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔎</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#0b0d10; --bg2:#0e1116; --surface:#12171d; --border:#232b34; --border2:#1a2028;
+    --faint:#4a5560; --dim:#7f8b98; --muted:#9daaba; --cream:#eef2f6; --amber:#53e6a6;
+    --amber-dim:#2f9c6f; --green:#53e6a6; --red:#ff7a6b; --blue:#5aa9ff; --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:'Geist',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6;overflow-x:hidden}
+  a{color:var(--amber);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 1.4rem}
+  h1,h2,h3{font-family:'Instrument Serif',serif;font-weight:400;letter-spacing:-.4px;line-height:1.15}
+  code,pre,.mono{font-family:'Geist Mono',ui-monospace,Consolas,monospace}
+  .eyebrow{font:600 12px/1 'Geist Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);opacity:.9}
+  .dim{color:var(--dim)} .muted{color:var(--muted)}
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);background:#0b0d10cc;border-bottom:1px solid var(--border2)}
+  nav .wrap{display:flex;align-items:center;gap:1.2rem;height:58px}
+  nav .brand{font-family:'Instrument Serif',serif;font-size:20px;margin-right:auto}
+  nav .brand span{color:var(--amber)}
+  nav a.lnk{color:var(--muted);font-size:14px} nav a.lnk:hover{color:var(--cream);text-decoration:none}
+  nav a.gh{border:1px solid var(--border);padding:.4rem .8rem;border-radius:7px;color:var(--cream);font-size:13px} nav a.gh:hover{border-color:var(--amber-dim);text-decoration:none}
+  .langsel{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+  .langsel button{background:none;border:0;color:var(--dim);font:500 12px 'Geist Mono',monospace;padding:.4rem .55rem;cursor:pointer}
+  .langsel button.on{background:#53e6a61a;color:var(--amber)} .langsel button:hover:not(.on){color:var(--cream)}
+  @media(max-width:680px){ nav a.lnk{display:none} }
+  .hero{position:relative;padding:5.5rem 0 4rem;overflow:hidden}
+  .hero::before{content:"";position:absolute;top:-30%;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at center,#53e6a61c,transparent 65%);pointer-events:none;filter:blur(20px)}
+  .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:3rem;align-items:center;position:relative}
+  @media(max-width:820px){ .hero-grid{grid-template-columns:1fr;gap:2rem} }
+  .hero h1{font-size:clamp(2.6rem,6vw,4.2rem);margin:.6rem 0 1rem}
+  .hero h1 em{color:var(--amber);font-style:italic}
+  .hero p.lead{font-size:1.15rem;color:var(--muted);max-width:40ch;margin:0 0 1.8rem}
+  .cta-row{display:flex;gap:.8rem;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.7rem 1.3rem;border-radius:9px;font-weight:500;font-size:.95rem;transition:transform .15s,box-shadow .15s,background .15s}
+  .btn:hover{text-decoration:none;transform:translateY(-1px)}
+  .btn-primary{background:var(--amber);color:#06231a;box-shadow:0 8px 24px -8px #53e6a688} .btn-primary:hover{background:#74efb8}
+  .btn-ghost{border:1px solid var(--border);color:var(--cream)} .btn-ghost:hover{border-color:var(--amber-dim)}
+  .pills{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1.6rem}
+  .pill{font:500 12px/1 'Geist Mono',monospace;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:.45rem .8rem} .pill b{color:var(--green);font-weight:500}
+  /* query mockup */
+  .chat{background:#0a0d11;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px -25px #000c}
+  .chat .bar{display:flex;align-items:center;gap:.4rem;padding:.6rem .8rem;background:#111820;border-bottom:1px solid var(--border)}
+  .chat .dot{width:11px;height:11px;border-radius:50%}
+  .chat .u{margin-left:.6rem;font:12px 'Geist Mono',monospace;color:var(--dim)}
+  .chat .body{padding:1.1rem;font-size:.9rem}
+  .chat .q{color:var(--dim);font:12px 'Geist Mono',monospace;margin-bottom:.8rem}
+  .chat .q b{color:var(--cream);font-weight:500}
+  .hit{background:#0d1116;border:1px solid var(--border);border-radius:8px;padding:.6rem .75rem;margin-bottom:.55rem;opacity:0;transform:translateY(6px);animation:pop .5s forwards}
+  .hit:nth-child(2){animation-delay:.15s}.hit:nth-child(3){animation-delay:.3s}
+  @keyframes pop{to{opacity:1;transform:none}}
+  .hit .score{float:right;font:12px 'Geist Mono',monospace;color:var(--amber)}
+  .hit .t{font-size:.85rem;color:var(--cream);margin-bottom:.2rem}
+  .hit .m{font-size:.75rem;color:var(--dim)}
+  section{padding:4.5rem 0;border-top:1px solid var(--border2)}
+  .sec-head{max-width:60ch;margin-bottom:2.4rem}
+  .sec-head h2{font-size:clamp(1.9rem,4vw,2.6rem);margin:.5rem 0 .6rem}
+  .sec-head p{color:var(--muted);font-size:1.05rem;margin:0}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem} @media(max-width:760px){ .cards{grid-template-columns:1fr} }
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:1.4rem}
+  .card .ic{font-size:1.6rem;margin-bottom:.6rem} .card h3{font-size:1.4rem;margin:0 0 .4rem} .card p{color:var(--muted);font-size:.95rem;margin:0}
+  .flow{background:linear-gradient(180deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:16px;padding:2rem 1.4rem}
+  .flow svg{width:100%;height:auto;display:block}
+  .flow-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:1.6rem}
+  .flow-legend .item{display:flex;gap:.7rem;align-items:flex-start}
+  .flow-legend .n{flex:0 0 24px;height:24px;border-radius:6px;background:#53e6a61a;border:1px solid var(--amber-dim);color:var(--amber);font:600 13px/24px 'Geist Mono',monospace;text-align:center}
+  .flow-legend .t{font-size:.9rem;color:var(--muted)} .flow-legend .t b{color:var(--cream);font-weight:500}
+  .keybox{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center} @media(max-width:760px){ .keybox{grid-template-columns:1fr} }
+  .keybox .txt h2{font-size:clamp(1.8rem,4vw,2.4rem);margin:.4rem 0 .8rem} .keybox .txt p{color:var(--muted)}
+  .folder{background:#080a0d;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 50px -20px #000}
+  .folder .bar{display:flex;align-items:center;gap:.4rem;padding:.6rem .8rem;background:#111820;border-bottom:1px solid var(--border)}
+  .folder .dot{width:11px;height:11px;border-radius:50%} .folder .u{margin-left:.6rem;font:12px 'Geist Mono',monospace;color:var(--dim)}
+  .folder .body{padding:1rem 1.1rem;font:13px/1.9 'Geist Mono',monospace}
+  .folder .f{color:var(--muted)} .folder .f b{color:var(--amber);font-weight:500} .folder .d{color:var(--dim)}
+  .steps{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem} @media(max-width:760px){ .steps{grid-template-columns:1fr} }
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:1.4rem}
+  .step .k{font:600 12px/1 'Geist Mono',monospace;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem}
+  .step h3{font-size:1.35rem;margin:0 0 .8rem} .step ol{margin:0;padding-left:1.2rem;color:var(--muted);font-size:.92rem} .step ol li{margin-bottom:.5rem}
+  .codeblock{position:relative;background:#06090c;border:1px solid var(--border);border-radius:10px;margin:.9rem 0}
+  .codeblock pre{margin:0;padding:.9rem 1rem;overflow-x:auto;font-size:.82rem;line-height:1.7;color:#d6dde5}
+  .codeblock .cp{position:absolute;top:.5rem;right:.5rem;background:#12181f;border:1px solid var(--border);color:var(--muted);font:500 11px 'Geist',sans-serif;padding:.25rem .5rem;border-radius:6px;cursor:pointer}
+  .codeblock .cp:hover{color:var(--cream);border-color:var(--amber-dim)}
+  .tok-c{color:var(--faint)} .tok-f{color:var(--amber)} .tok-s{color:#8fb7d6}
+  .apiflow{display:grid;grid-template-columns:1.05fr .95fr;gap:1.6rem;align-items:start} @media(max-width:820px){ .apiflow{grid-template-columns:1fr} }
+  .devpanel{background:#0b0d10;border:1px solid #2a3038;border-radius:10px;padding:1rem 1.1rem;font:13px/1.9 'Geist Mono',monospace;max-width:430px}
+  .devpanel .h{font-family:'Geist',sans-serif;font-weight:600;margin-bottom:.5rem}
+  .devpanel .r{display:flex;justify-content:space-between;gap:1.2rem} .devpanel .r span:first-child{color:var(--dim)}
+  .devpanel .ok{color:var(--green)} .devpanel .bad{color:var(--red)} .devpanel .warn{color:#e8a55e}
+  .devpanel .verdict{color:var(--green);margin-top:.6rem;font-family:'Geist',sans-serif;font-size:.86rem}
+  .devpanel .verdict.bad{color:var(--red)} .devpanel .verdict.warn{color:#e8a55e}
+  .devpanel .note{color:var(--faint);margin-top:.4rem;font-family:'Geist',sans-serif;font-size:.76rem}
+  .honest{display:grid;grid-template-columns:repeat(2,1fr);gap:1.1rem} @media(max-width:700px){ .honest{grid-template-columns:1fr} }
+  .honest .h{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--amber-dim);border-radius:10px;padding:1.1rem 1.2rem}
+  .honest .h b{display:block;margin-bottom:.3rem;font-weight:500} .honest .h span{color:var(--muted);font-size:.9rem}
+  .sibling{background:linear-gradient(90deg,#12171d,#0e1116);border:1px solid var(--border);border-radius:13px;padding:1.3rem 1.5rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+  .sibling .ic{font-size:1.8rem} .sibling .t{flex:1;min-width:220px} .sibling .t b{color:var(--cream);font-weight:500} .sibling .t p{margin:.2rem 0 0;color:var(--muted);font-size:.9rem}
+  footer{border-top:1px solid var(--border2);padding:3rem 0;color:var(--dim);font-size:.9rem}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:1.4rem;justify-content:space-between;align-items:center}
+  footer a{color:var(--muted)} .attrib{font-size:.82rem;color:var(--faint);max-width:56ch;margin-top:1.2rem}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">rag-local <span>· Pages</span></div>
+  <a class="lnk" href="#como" data-i18n="nav_how"></a>
+  <a class="lnk" href="#deploy" data-i18n="nav_deploy"></a>
+  <a class="lnk" href="#usar" data-i18n="nav_use"></a>
+  <div class="langsel" id="langsel"><button data-lang="es">ES</button><button data-lang="en">EN</button><button data-lang="pt">PT</button></div>
+  <a class="gh" href="https://github.com/MauricioPerera/rag-local" target="_blank" rel="noopener">GitHub ↗</a>
+</div></nav>
+
+<header class="hero"><div class="wrap hero-grid">
+  <div>
+    <div class="eyebrow">Cloudflare Pages · WebGPU / WASM · <span data-i18n="hero_eyebrow"></span></div>
+    <h1 data-i18n="hero_title"></h1>
+    <p class="lead" data-i18n="hero_lead"></p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#deploy" data-i18n="hero_cta1"></a>
+      <a class="btn btn-ghost" href="https://github.com/MauricioPerera/rag-local" target="_blank" rel="noopener" data-i18n="hero_cta2"></a>
+    </div>
+    <div class="pills">
+      <span class="pill"><b>✓</b> <span data-i18n="pill1"></span></span>
+      <span class="pill"><b>✓</b> <span data-i18n="pill2"></span></span>
+      <span class="pill"><b>✓</b> <span data-i18n="pill3"></span></span>
+    </div>
+  </div>
+  <div class="chat">
+    <div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span><span class="u">POST /api/collections/…/query</span></div>
+    <div class="body">
+      <div class="q" data-i18n="q_line"></div>
+      <div class="hit"><span class="score">0.89</span><div class="t" data-i18n="hit1t"></div><div class="m" data-i18n="hit1m"></div></div>
+      <div class="hit"><span class="score">0.81</span><div class="t" data-i18n="hit2t"></div><div class="m" data-i18n="hit2m"></div></div>
+      <div class="hit"><span class="score">0.74</span><div class="t" data-i18n="hit3t"></div><div class="m" data-i18n="hit3m"></div></div>
+    </div>
+  </div>
+</div></header>
+
+<section id="que"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="que_eyebrow"></div><h2 data-i18n="que_h"></h2><p data-i18n="que_p"></p></div>
+  <div class="cards">
+    <div class="card reveal"><div class="ic">🧠</div><h3 data-i18n="c1h"></h3><p data-i18n="c1p"></p></div>
+    <div class="card reveal"><div class="ic">📁</div><h3 data-i18n="c2h"></h3><p data-i18n="c2p"></p></div>
+    <div class="card reveal"><div class="ic">🔌</div><h3 data-i18n="c3h"></h3><p data-i18n="c3p"></p></div>
+  </div>
+</div></section>
+
+<section id="como"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="como_eyebrow"></div><h2 data-i18n="como_h"></h2><p data-i18n="como_p"></p></div>
+  <div class="flow reveal">
+    <svg viewBox="0 0 900 220" role="img" aria-label="flow diagram">
+      <defs><marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7f8b98"/></marker><linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#53e6a6"/><stop offset="1" stop-color="#2f9c6f"/></linearGradient></defs>
+      <g font-family="Geist Mono, monospace" font-size="12">
+        <rect x="20" y="80" width="170" height="60" rx="10" fill="#12171d" stroke="#232b34"/>
+        <text x="105" y="105" fill="#eef2f6" text-anchor="middle" font-size="13" data-i18n="d_node1"></text>
+        <text x="105" y="123" fill="#7f8b98" text-anchor="middle">POST …/query</text>
+        <rect x="365" y="80" width="170" height="60" rx="10" fill="#12171d" stroke="#232b34"/>
+        <text x="450" y="105" fill="#eef2f6" text-anchor="middle" font-size="13">Cloudflare</text>
+        <text x="450" y="123" fill="#7f8b98" text-anchor="middle" data-i18n="d_node2sub"></text>
+        <rect x="710" y="80" width="170" height="60" rx="10" fill="#12171d" stroke="#2f6b52"/>
+        <text x="795" y="103" fill="#eef2f6" text-anchor="middle" font-size="13" data-i18n="d_node3"></text>
+        <text x="795" y="121" fill="#53e6a6" text-anchor="middle" data-i18n="d_node3sub"></text>
+      </g>
+      <path id="p1" d="M190,110 L365,110" stroke="#333d47" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <path d="M710,128 C620,175 520,175 535,140" stroke="#333d47" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <path d="M535,96 C620,45 700,55 710,92" stroke="#333d47" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+      <text x="622" y="42" fill="#7f8b98" text-anchor="middle" font-size="11" font-family="Geist Mono, monospace" data-i18n="d_ask"></text>
+      <text x="620" y="200" fill="#7f8b98" text-anchor="middle" font-size="11" font-family="Geist Mono, monospace" data-i18n="d_return"></text>
+      <circle r="5" fill="url(#g1)"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#p1"/></animateMotion></circle>
+    </svg>
+    <div class="flow-legend">
+      <div class="item"><div class="n">1</div><div class="t" data-i18n="leg1"></div></div>
+      <div class="item"><div class="n">2</div><div class="t" data-i18n="leg2"></div></div>
+      <div class="item"><div class="n">3</div><div class="t" data-i18n="leg3"></div></div>
+      <div class="item"><div class="n">4</div><div class="t" data-i18n="leg4"></div></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="carpeta"><div class="wrap keybox">
+  <div class="txt reveal"><div class="eyebrow" data-i18n="fold_eyebrow"></div><h2 data-i18n="fold_h"></h2><p data-i18n="fold_p1"></p><p class="muted" style="font-size:.92rem" data-i18n="fold_p2"></p></div>
+  <div class="folder reveal">
+    <div class="bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span><span class="u" data-i18n="fold_dir"></span></div>
+    <div class="body">
+      <div class="f">📄 <b>medicina.jvsb</b> <span class="d" data-i18n="fold_f1"></span></div>
+      <div class="f">📄 <b>recetas.jvsb</b> <span class="d" data-i18n="fold_f2"></span></div>
+      <div class="f">📄 <b>manual.jvsb</b> <span class="d" data-i18n="fold_f3"></span></div>
+      <div class="f" style="margin-top:.5rem;color:var(--dim)" data-i18n="fold_note"></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="deploy"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="deploy_eyebrow"></div><h2 data-i18n="deploy_h"></h2><p data-i18n="deploy_p"></p></div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="k" data-i18n="stepA_k"></div><h3 data-i18n="stepA_h"></h3>
+      <ol><li data-i18n="stepA_1"></li><li data-i18n="stepA_2"></li><li data-i18n="stepA_3"></li></ol>
+      <div class="codeblock"><button class="cp" data-i18n="copy"></button><pre><span class="tok-c" data-i18n="cA_c1"></span>
+git clone https://github.com/MauricioPerera/rag-local
+<span class="tok-f">cd</span> rag-local && npm install
+
+<span class="tok-c" data-i18n="cA_c2"></span>
+npx wrangler pages project create rag-local
+npx wrangler pages secret put API_SECRET
+
+<span class="tok-c" data-i18n="cA_c3"></span>
+npm run deploy</pre></div>
+    </div>
+    <div class="step reveal">
+      <div class="k" data-i18n="stepB_k"></div><h3 data-i18n="stepB_h"></h3>
+      <ol><li data-i18n="stepB_1"></li><li data-i18n="stepB_2"></li><li data-i18n="stepB_3"></li><li data-i18n="stepB_4"></li></ol>
+      <p class="muted" style="font-size:.86rem;margin-top:.8rem" data-i18n="stepB_note"></p>
+    </div>
+  </div>
+  <p class="dim" style="margin-top:1.4rem;font-size:.9rem" data-i18n="deploy_foot"></p>
+</div></section>
+
+<section id="usar"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="use_eyebrow"></div><h2 data-i18n="use_h"></h2><p data-i18n="use_p"></p></div>
+  <div class="apiflow">
+    <div class="reveal">
+      <div class="codeblock"><button class="cp" data-i18n="copy"></button><pre><span class="tok-c" data-i18n="cU_c1"></span>
+curl -X POST $URL/api/collections/medicina/query \
+  -H <span class="tok-s">"Authorization: Bearer $SECRET"</span> \
+  -d <span class="tok-s">'{"text":"diagnóstico","k":3}'</span>
+<span class="tok-c">→ {"hits":[{"score":0.89,"doc":…}]}</span>
+
+<span class="tok-c" data-i18n="cU_c2"></span>
+GET    /api/collections
+POST   /api/collections   <span class="tok-c">{name,docs}</span>
+DELETE /api/collections/:name
+GET    /api/status</pre></div>
+      <p class="dim" style="font-size:.86rem" data-i18n="use_note"></p>
+    </div>
+    <div class="reveal">
+      <p class="eyebrow" style="margin-bottom:.8rem" data-i18n="use_side_cap"></p>
+      <div class="cards" style="grid-template-columns:1fr">
+        <div class="card"><h3 style="font-size:1.15rem" data-i18n="feat1h"></h3><p data-i18n="feat1p"></p></div>
+        <div class="card"><h3 style="font-size:1.15rem" data-i18n="feat2h"></h3><p data-i18n="feat2p"></p></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="requisitos"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="req_eyebrow"></div><h2 data-i18n="req_h"></h2><p data-i18n="req_p"></p></div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:center" class="reveal">
+    <div class="devpanel" id="landingDev"><div class="h" data-i18n="req_panel_h"></div><div id="landingDevBody" style="opacity:.7" data-i18n="req_checking"></div></div>
+    <div style="max-width:34ch"><p class="muted" data-i18n="req_side1"></p><p class="muted" style="font-size:.9rem" data-i18n="req_side2"></p></div>
+  </div>
+</div></section>
+
+<section id="honesto"><div class="wrap">
+  <div class="sec-head reveal"><div class="eyebrow" data-i18n="honest_eyebrow"></div><h2 data-i18n="honest_h"></h2></div>
+  <div class="honest">
+    <div class="h reveal"><b data-i18n="h1b"></b><span data-i18n="h1s"></span></div>
+    <div class="h reveal"><b data-i18n="h2b"></b><span data-i18n="h2s"></span></div>
+    <div class="h reveal"><b data-i18n="h3b"></b><span data-i18n="h3s"></span></div>
+    <div class="h reveal"><b data-i18n="h4b"></b><span data-i18n="h4s"></span></div>
+  </div>
+  <div class="sibling reveal" style="margin-top:1.6rem">
+    <div class="ic">🖥️</div>
+    <div class="t"><b data-i18n="sib_b"></b><p data-i18n="sib_p"></p></div>
+    <a class="btn btn-ghost" href="./" data-i18n="sib_cta"></a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div>
+    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:var(--cream)">rag-local <span style="color:var(--amber)">· Pages</span></div>
+    <p class="attrib" data-i18n="foot_attrib"></p>
+  </div>
+  <div style="display:flex;gap:1.2rem"><a href="https://github.com/MauricioPerera/rag-local" target="_blank" rel="noopener" data-i18n="foot_repo"></a><a href="./" data-i18n="foot_node"></a></div>
+</div></footer>
+
+<script>
+const I18N = {
+  es:{
+    copy:"copiar", nav_how:"Cómo funciona", nav_deploy:"Desplegar", nav_use:"Usar",
+    hero_eyebrow:"plan gratis", hero_title:'Tu RAG local, <em>como una API</em>.',
+    hero_lead:"Los embeddings se calculan en tu navegador; las colecciones son archivos en una carpeta tuya. Esta plantilla lo expone como una API HTTP en Cloudflare Pages — el mismo contrato REST que el servidor Node, sin servidor propio.",
+    hero_cta1:"Desplegarlo →", hero_cta2:"Ver el código",
+    pill1:"embeddings en tu equipo", pill2:"gratis", pill3:"cae a WASM (anda en el móvil)",
+    q_line:'query: <b>“diagnóstico médico”</b> · k=3',
+    hit1t:"Diagnóstico diferencial en atención primaria", hit1m:"medicina.jvsb · chunk 4",
+    hit2t:"Protocolo de triage y signos de alarma", hit2m:"medicina.jvsb · chunk 11",
+    hit3t:"Historia clínica orientada al problema", hit3m:"medicina.jvsb · chunk 2",
+    que_eyebrow:"¿Qué es esto?", que_h:"El engine de rag-local, corriendo en una pestaña — y atendiendo como API.",
+    que_p:"No hay una “nube mágica” calculando embeddings. El modelo se baja a tu navegador y usa <b>tu equipo</b>. Esta herramienta le pone adelante una dirección web para consultar tus colecciones desde afuera.",
+    c1h:"Embeddings en tu equipo", c1p:"<code>embeddinggemma-300m</code> (~309 MB) corre con transformers.js: WebGPU si hay, WASM si no. Se baja una vez y queda cacheado. Cero cómputo en un servidor.",
+    c2h:"Colecciones = tus archivos", c2p:"Las colecciones son archivos <code>.jvsb</code> en <b>una carpeta que elegís</b> (File System Access) — las mismas que usa el servidor Node. Nada se sube a la nube.",
+    c3h:"Se usa como API", c3p:"El mismo contrato REST que <code>rag-server.mjs</code>: listar, crear, borrar y consultar colecciones por HTTP, desde una terminal o cualquier app.",
+    como_eyebrow:"Cómo funciona", como_h:"Tu consulta viaja hasta tu propia pestaña, y vuelve con los resultados.",
+    como_p:"Un navegador no tiene una dirección a la que llamar desde afuera — así que la pestaña es la que <b>pregunta</b> si hay trabajo. Cloudflare guarda tu pedido un instante hasta que la pestaña lo levanta.",
+    d_node1:"Tu terminal", d_node2sub:"guarda el pedido", d_node3:"Tu pestaña", d_node3sub:"busca en tu carpeta",
+    d_ask:"la pestaña pregunta “¿hay trabajo?”", d_return:"devuelve los hits",
+    leg1:"<b>Pedís.</b> Un POST con tu consulta llega a Cloudflare.", leg2:"<b>Espera.</b> Tu pestaña, que pregunta seguido, levanta el pedido.",
+    leg3:"<b>Busca.</b> Embebe la consulta en tu GPU/CPU y busca en el <code>.jvsb</code> de tu carpeta.", leg4:"<b>Recibís.</b> Los chunks más parecidos vuelven como JSON, en la misma llamada.",
+    fold_eyebrow:"La idea clave", fold_h:'Las colecciones son <em>tuyas</em>, en tu disco.',
+    fold_p1:'Elegís una carpeta una vez por sesión. rag-local lee y escribe archivos <code>.jvsb</code> ahí — el mismo formato del servidor Node, byte por byte. Podés apuntar a la <code>rag-node/collections/</code> que ya usás y trabajar sobre las mismas.',
+    fold_p2:"Los vectores nunca salen de tu máquina. Solo la consulta y los chunks que vuelven pasan por Cloudflare.",
+    fold_dir:"~/rag-node/collections/", fold_f1:"· 312 chunks", fold_f2:"· 88 chunks", fold_f3:"· 540 chunks",
+    fold_note:"↑ los mismos archivos que lee el servidor Node",
+    deploy_eyebrow:"Desplegarlo", deploy_h:"Ponerlo en línea toma unos minutos. Elegí un camino.",
+    deploy_p:"Solo necesitás una cuenta de Cloudflare (el plan gratis alcanza). El build ensambla el sitio con el engine del repo.",
+    stepA_k:"Opción A · con comandos", stepA_h:"Wrangler (la CLI de Cloudflare)",
+    stepA_1:"Cloná el repo e instalá.", stepA_2:"Creá el proyecto y elegí un secreto (una contraseña para la API).", stepA_3:"Desplegá. Listo.",
+    cA_c1:"# 1) clonar", cA_c2:"# 2) crear proyecto + secreto", cA_c3:"# 3) build + desplegar",
+    stepB_k:"Opción B · sin comandos", stepB_h:"Conectando el repo en el panel",
+    stepB_1:"Hacé un <b>fork</b> del repo en tu GitHub.", stepB_2:"En Cloudflare: <b>Workers &amp; Pages → Create → Pages → Connect to Git</b>, elegí tu fork.",
+    stepB_3:"Build command: <code>npm run build</code> · Output: <code>_site</code>.", stepB_4:"Agregá <code>API_SECRET</code> (una contraseña tuya) y <b>volvé a desplegar</b>.",
+    stepB_note:"Un secreto en Cloudflare solo toma efecto en despliegues <b>nuevos</b>: por eso hay que redesplegar después de agregarlo.",
+    deploy_foot:"El build no descarga ni vendoriza nada de terceros: copia el engine del propio repo (rag-poc/) a _site/ y ajusta las rutas. El modelo de embeddings lo baja el navegador de Hugging Face al usarlo.",
+    use_eyebrow:"Usarlo", use_h:"El mismo contrato REST que el servidor Node.",
+    use_p:"Consultar es cuestión de milisegundos (embeber + buscar), así que la API es síncrona: te devuelve los hits en el acto, sin sondeo.",
+    cU_c1:"# consultar una colección", cU_c2:"# resto del contrato",
+    use_note:"Todos los endpoints piden el secreto y fallan cerrados si falta. Crear una colección grande tarda lo que tarde embeber sus documentos.",
+    use_side_cap:"El contrato completo:",
+    feat1h:"Compatible con el CLI", feat1p:"<code>rag-cli.mjs</code> habla con esta API igual que con el servidor Node: apuntás <code>RAG_BASE_URL</code> a tu <code>.pages.dev</code> y listo.",
+    feat2h:"Importar / exportar", feat2p:"Las colecciones son portables: exportás un <code>.jvsb</code> desde una instancia y lo importás en otra, byte-idéntico.",
+    req_eyebrow:"¿Tu equipo puede?", req_h:"Casi siempre sí — con WebGPU vuela, sin él igual anda.",
+    req_p:"A diferencia de los modelos grandes, rag-local <b>no tiene un requisito duro</b>: si hay WebGPU lo usa, y si no, cae a WASM (más lento, pero funciona hasta en el móvil). El chequeo te dice qué te toca.",
+    req_panel_h:'Aceleración de <em style="font-style:normal;color:var(--amber)">tu</em> dispositivo', req_checking:"comprobando tu equipo…",
+    req_side1:"Este panel <b>chequea tu equipo de verdad</b>, ahora — con el WebGPU de este navegador, sin descargar nada.",
+    req_side2:"El modelo pesa ~309 MB (una vez). Con WebGPU las consultas son casi instantáneas; en WASM tardan un poco más.",
+    honest_eyebrow:"Lo que conviene saber", honest_h:"Sin letra chica.",
+    h1b:"La pestaña tiene que estar abierta.", h1s:"Es el motor. Cerrala y la API responde 503. Elegís carpeta y cargás el modelo a mano una vez por sesión.",
+    h2b:"Necesita Chromium para la carpeta.", h2s:"File System Access (elegir carpeta de colecciones) es de Chrome/Edge. El modelo sí corre en cualquier navegador con WASM.",
+    h3b:"La primera carga del modelo: ~309 MB.", h3s:"<code>embeddinggemma-300m</code> desde Hugging Face; después queda cacheado y abre al instante.",
+    h4b:"Un pedido a la vez.", h4s:"Es una sola pestaña. Los pedidos que llegan mientras hay uno en curso esperan.",
+    sib_b:"¿Preferís correrlo como servidor?", sib_p:"rag-local también es una app Node/CLI clásica: el mismo engine, sin navegador. Esa es su página principal.",
+    sib_cta:"Ver rag-local (Node) →",
+    foot_attrib:'Todo el código es del propio repo (MIT). El modelo de embeddings <a href="https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX" target="_blank" rel="noopener">embeddinggemma-300m</a> lo baja el navegador de Hugging Face, bajo sus propios términos.',
+    foot_repo:"Repositorio ↗", foot_node:"rag-local (Node)",
+    dev_nowebgpu:"<strong>Sin WebGPU — igual anda.</strong> Este navegador correrá el modelo en WASM: más lento, pero funciona.",
+    dev_noadapter:"<strong>WebGPU sin adapter — cae a WASM.</strong> La GPU no está disponible para el navegador; el modelo usará WASM.",
+    dev_accel:"Aceleración", dev_fsa:"Carpeta (File System Access)", dev_disk:"Espacio (modelo ~309 MB)",
+    dev_vwebgpu:"<strong>Compatible, con aceleración.</strong> WebGPU disponible: los embeddings corren en tu GPU. Descarga: ~309 MB la primera vez.",
+    dev_vwasm:"<strong>Compatible, en WASM.</strong> Sin WebGPU, pero el modelo corre igual (más lento). Descarga: ~309 MB la primera vez.",
+    dev_note:"rag-local no tiene requisito duro: transformers.js usa WebGPU si hay y cae a WASM si no. Para elegir la carpeta de colecciones hace falta Chromium."
+  },
+  en:{
+    copy:"copy", nav_how:"How it works", nav_deploy:"Deploy", nav_use:"Use it",
+    hero_eyebrow:"free plan", hero_title:'Your local RAG, <em>as an API</em>.',
+    hero_lead:"Embeddings are computed in your browser; collections are files in a folder of yours. This template exposes it as an HTTP API on Cloudflare Pages — the same REST contract as the Node server, with no server of your own.",
+    hero_cta1:"Deploy it →", hero_cta2:"View the code",
+    pill1:"embeddings on your machine", pill2:"free", pill3:"falls back to WASM (runs on phones)",
+    q_line:'query: <b>“medical diagnosis”</b> · k=3',
+    hit1t:"Differential diagnosis in primary care", hit1m:"medicine.jvsb · chunk 4",
+    hit2t:"Triage protocol and warning signs", hit2m:"medicine.jvsb · chunk 11",
+    hit3t:"Problem-oriented medical record", hit3m:"medicine.jvsb · chunk 2",
+    que_eyebrow:"What is this?", que_h:"The rag-local engine, running in a tab — and answering like an API.",
+    que_p:"There's no “magic cloud” computing embeddings. The model downloads to your browser and uses <b>your machine</b>. This tool puts a web address in front of it so you can query your collections from outside.",
+    c1h:"Embeddings on your machine", c1p:"<code>embeddinggemma-300m</code> (~309 MB) runs via transformers.js: WebGPU if present, WASM if not. Downloads once and is cached. Zero server-side compute.",
+    c2h:"Collections = your files", c2p:"Collections are <code>.jvsb</code> files in <b>a folder you pick</b> (File System Access) — the same ones the Node server uses. Nothing is uploaded to the cloud.",
+    c3h:"Used like an API", c3p:"The same REST contract as <code>rag-server.mjs</code>: list, create, delete and query collections over HTTP, from a terminal or any app.",
+    como_eyebrow:"How it works", como_h:"Your query travels to your own tab, and comes back with the results.",
+    como_p:"A browser has no address to call from outside — so the tab is the one that <b>asks</b> whether there's work. Cloudflare holds your request for a moment until the tab picks it up.",
+    d_node1:"Your terminal", d_node2sub:"holds the request", d_node3:"Your tab", d_node3sub:"searches your folder",
+    d_ask:"the tab asks “any work?”", d_return:"returns the hits",
+    leg1:"<b>You ask.</b> A POST with your query reaches Cloudflare.", leg2:"<b>It waits.</b> Your tab, which keeps asking, picks up the request.",
+    leg3:"<b>It searches.</b> Embeds the query on your GPU/CPU and searches the <code>.jvsb</code> in your folder.", leg4:"<b>You receive.</b> The most similar chunks come back as JSON, on the same call.",
+    fold_eyebrow:"The key idea", fold_h:'The collections are <em>yours</em>, on your disk.',
+    fold_p1:'You pick a folder once per session. rag-local reads and writes <code>.jvsb</code> files there — the same format as the Node server, byte for byte. You can point it at the <code>rag-node/collections/</code> you already use and work on the same ones.',
+    fold_p2:"Vectors never leave your machine. Only the query and the chunks that come back pass through Cloudflare.",
+    fold_dir:"~/rag-node/collections/", fold_f1:"· 312 chunks", fold_f2:"· 88 chunks", fold_f3:"· 540 chunks",
+    fold_note:"↑ the same files the Node server reads",
+    deploy_eyebrow:"Deploy it", deploy_h:"Getting it online takes a few minutes. Pick a path.",
+    deploy_p:"You only need a Cloudflare account (the free plan is enough). The build assembles the site with the repo's engine.",
+    stepA_k:"Option A · with commands", stepA_h:"Wrangler (Cloudflare's CLI)",
+    stepA_1:"Clone the repo and install.", stepA_2:"Create the project and choose a secret (a password for the API).", stepA_3:"Deploy. Done.",
+    cA_c1:"# 1) clone", cA_c2:"# 2) create project + secret", cA_c3:"# 3) build + deploy",
+    stepB_k:"Option B · no commands", stepB_h:"Connecting the repo in the dashboard",
+    stepB_1:"<b>Fork</b> the repo on your GitHub.", stepB_2:"In Cloudflare: <b>Workers &amp; Pages → Create → Pages → Connect to Git</b>, pick your fork.",
+    stepB_3:"Build command: <code>npm run build</code> · Output: <code>_site</code>.", stepB_4:"Add <code>API_SECRET</code> (a password of yours) and <b>redeploy</b>.",
+    stepB_note:"A Cloudflare secret only takes effect on <b>new</b> deployments: that's why you redeploy after adding it.",
+    deploy_foot:"The build downloads and vendors nothing from third parties: it copies the repo's own engine (rag-poc/) into _site/ and fixes the paths. The embedding model is downloaded by the browser from Hugging Face on use.",
+    use_eyebrow:"Use it", use_h:"The same REST contract as the Node server.",
+    use_p:"Querying is milliseconds (embed + search), so the API is synchronous: it returns the hits right away, no polling.",
+    cU_c1:"# query a collection", cU_c2:"# rest of the contract",
+    use_note:"Every endpoint requires the secret and fails closed without it. Creating a large collection takes as long as embedding its documents.",
+    use_side_cap:"The full contract:",
+    feat1h:"Works with the CLI", feat1p:"<code>rag-cli.mjs</code> talks to this API just like the Node server: point <code>RAG_BASE_URL</code> at your <code>.pages.dev</code> and go.",
+    feat2h:"Import / export", feat2p:"Collections are portable: export a <code>.jvsb</code> from one instance and import it into another, byte-identical.",
+    req_eyebrow:"Can your machine run it?", req_h:"Almost always yes — flies with WebGPU, still works without it.",
+    req_p:"Unlike the big models, rag-local <b>has no hard requirement</b>: if WebGPU is there it uses it, and if not it falls back to WASM (slower, but works even on phones). The check tells you which you get.",
+    req_panel_h:'Acceleration on <em style="font-style:normal;color:var(--amber)">your</em> device', req_checking:"checking your machine…",
+    req_side1:"This panel <b>actually checks your machine</b>, right now — using this browser's WebGPU, downloading nothing.",
+    req_side2:"The model is ~309 MB (once). With WebGPU queries are near-instant; on WASM they take a bit longer.",
+    honest_eyebrow:"Good to know", honest_h:"No fine print.",
+    h1b:"The tab has to stay open.", h1s:"It's the engine. Close it and the API answers 503. You pick the folder and load the model by hand once per session.",
+    h2b:"Needs Chromium for the folder.", h2s:"File System Access (picking the collections folder) is Chrome/Edge only. The model itself runs in any browser with WASM.",
+    h3b:"First model load: ~309 MB.", h3s:"<code>embeddinggemma-300m</code> from Hugging Face; cached afterwards and opens instantly.",
+    h4b:"One request at a time.", h4s:"It's a single tab. Requests arriving mid-flight wait their turn.",
+    sib_b:"Rather run it as a server?", sib_p:"rag-local is also a classic Node/CLI app: the same engine, no browser. That's its main page.",
+    sib_cta:"See rag-local (Node) →",
+    foot_attrib:'All code is the repo\'s own (MIT). The embedding model <a href="https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX" target="_blank" rel="noopener">embeddinggemma-300m</a> is downloaded by the browser from Hugging Face, under its own terms.',
+    foot_repo:"Repository ↗", foot_node:"rag-local (Node)",
+    dev_nowebgpu:"<strong>No WebGPU — still works.</strong> This browser will run the model on WASM: slower, but it works.",
+    dev_noadapter:"<strong>WebGPU but no adapter — falls back to WASM.</strong> The GPU isn't available to the browser; the model will use WASM.",
+    dev_accel:"Acceleration", dev_fsa:"Folder (File System Access)", dev_disk:"Space (model ~309 MB)",
+    dev_vwebgpu:"<strong>Compatible, with acceleration.</strong> WebGPU available: embeddings run on your GPU. Download: ~309 MB the first time.",
+    dev_vwasm:"<strong>Compatible, on WASM.</strong> No WebGPU, but the model runs anyway (slower). Download: ~309 MB the first time.",
+    dev_note:"rag-local has no hard requirement: transformers.js uses WebGPU if present and falls back to WASM if not. Picking the collections folder needs Chromium."
+  },
+  pt:{
+    copy:"copiar", nav_how:"Como funciona", nav_deploy:"Implantar", nav_use:"Usar",
+    hero_eyebrow:"plano gratuito", hero_title:'Seu RAG local, <em>como uma API</em>.',
+    hero_lead:"Os embeddings são calculados no seu navegador; as coleções são arquivos numa pasta sua. Este template o expõe como uma API HTTP na Cloudflare Pages — o mesmo contrato REST do servidor Node, sem servidor próprio.",
+    hero_cta1:"Implantar →", hero_cta2:"Ver o código",
+    pill1:"embeddings na sua máquina", pill2:"grátis", pill3:"cai para WASM (roda no celular)",
+    q_line:'query: <b>“diagnóstico médico”</b> · k=3',
+    hit1t:"Diagnóstico diferencial na atenção primária", hit1m:"medicina.jvsb · chunk 4",
+    hit2t:"Protocolo de triagem e sinais de alarme", hit2m:"medicina.jvsb · chunk 11",
+    hit3t:"Prontuário orientado ao problema", hit3m:"medicina.jvsb · chunk 2",
+    que_eyebrow:"O que é isto?", que_h:"O engine do rag-local, rodando numa aba — e atendendo como API.",
+    que_p:"Não existe uma “nuvem mágica” calculando embeddings. O modelo é baixado no seu navegador e usa <b>a sua máquina</b>. Esta ferramenta coloca um endereço web na frente dele para consultar suas coleções de fora.",
+    c1h:"Embeddings na sua máquina", c1p:"<code>embeddinggemma-300m</code> (~309 MB) roda via transformers.js: WebGPU se houver, WASM se não. Baixa uma vez e fica em cache. Zero computação num servidor.",
+    c2h:"Coleções = seus arquivos", c2p:"As coleções são arquivos <code>.jvsb</code> em <b>uma pasta que você escolhe</b> (File System Access) — as mesmas que o servidor Node usa. Nada é enviado para a nuvem.",
+    c3h:"Usado como API", c3p:"O mesmo contrato REST do <code>rag-server.mjs</code>: listar, criar, apagar e consultar coleções por HTTP, de um terminal ou qualquer app.",
+    como_eyebrow:"Como funciona", como_h:"Sua consulta viaja até a sua própria aba, e volta com os resultados.",
+    como_p:"Um navegador não tem um endereço para ser chamado de fora — então é a aba que <b>pergunta</b> se há trabalho. A Cloudflare guarda seu pedido por um instante até a aba pegá-lo.",
+    d_node1:"Seu terminal", d_node2sub:"guarda o pedido", d_node3:"Sua aba", d_node3sub:"busca na sua pasta",
+    d_ask:"a aba pergunta “tem trabalho?”", d_return:"devolve os hits",
+    leg1:"<b>Você pede.</b> Um POST com sua consulta chega à Cloudflare.", leg2:"<b>Espera.</b> Sua aba, que fica perguntando, pega o pedido.",
+    leg3:"<b>Busca.</b> Faz o embedding da consulta na sua GPU/CPU e busca no <code>.jvsb</code> da sua pasta.", leg4:"<b>Você recebe.</b> Os chunks mais parecidos voltam como JSON, na mesma chamada.",
+    fold_eyebrow:"A ideia central", fold_h:'As coleções são <em>suas</em>, no seu disco.',
+    fold_p1:'Você escolhe uma pasta uma vez por sessão. O rag-local lê e escreve arquivos <code>.jvsb</code> ali — o mesmo formato do servidor Node, byte a byte. Você pode apontar para a <code>rag-node/collections/</code> que já usa e trabalhar nas mesmas.',
+    fold_p2:"Os vetores nunca saem da sua máquina. Só a consulta e os chunks que voltam passam pela Cloudflare.",
+    fold_dir:"~/rag-node/collections/", fold_f1:"· 312 chunks", fold_f2:"· 88 chunks", fold_f3:"· 540 chunks",
+    fold_note:"↑ os mesmos arquivos que o servidor Node lê",
+    deploy_eyebrow:"Implantar", deploy_h:"Colocar no ar leva alguns minutos. Escolha um caminho.",
+    deploy_p:"Você só precisa de uma conta na Cloudflare (o plano grátis basta). O build monta o site com o engine do repositório.",
+    stepA_k:"Opção A · com comandos", stepA_h:"Wrangler (a CLI da Cloudflare)",
+    stepA_1:"Clone o repositório e instale.", stepA_2:"Crie o projeto e escolha um segredo (uma senha para a API).", stepA_3:"Implante. Pronto.",
+    cA_c1:"# 1) clonar", cA_c2:"# 2) criar projeto + segredo", cA_c3:"# 3) build + implantar",
+    stepB_k:"Opção B · sem comandos", stepB_h:"Conectando o repositório no painel",
+    stepB_1:"Faça um <b>fork</b> do repositório no seu GitHub.", stepB_2:"Na Cloudflare: <b>Workers &amp; Pages → Create → Pages → Connect to Git</b>, escolha seu fork.",
+    stepB_3:"Build command: <code>npm run build</code> · Output: <code>_site</code>.", stepB_4:"Adicione <code>API_SECRET</code> (uma senha sua) e <b>implante de novo</b>.",
+    stepB_note:"Um segredo na Cloudflare só vale em implantações <b>novas</b>: por isso é preciso reimplantar depois de adicioná-lo.",
+    deploy_foot:"O build não baixa nem vendoriza nada de terceiros: copia o engine do próprio repositório (rag-poc/) para _site/ e ajusta os caminhos. O modelo de embeddings é baixado pelo navegador do Hugging Face ao usar.",
+    use_eyebrow:"Usar", use_h:"O mesmo contrato REST do servidor Node.",
+    use_p:"Consultar é questão de milissegundos (embedding + busca), então a API é síncrona: devolve os hits na hora, sem polling.",
+    cU_c1:"# consultar uma coleção", cU_c2:"# resto do contrato",
+    use_note:"Todos os endpoints pedem o segredo e falham fechados se faltar. Criar uma coleção grande demora o que demorar para fazer o embedding dos documentos.",
+    use_side_cap:"O contrato completo:",
+    feat1h:"Compatível com o CLI", feat1p:"<code>rag-cli.mjs</code> fala com esta API igual ao servidor Node: aponte <code>RAG_BASE_URL</code> para seu <code>.pages.dev</code> e pronto.",
+    feat2h:"Importar / exportar", feat2p:"As coleções são portáveis: exporte um <code>.jvsb</code> de uma instância e importe em outra, byte-idêntico.",
+    req_eyebrow:"Sua máquina aguenta?", req_h:"Quase sempre sim — voa com WebGPU, funciona mesmo sem ele.",
+    req_p:"Diferente dos modelos grandes, o rag-local <b>não tem requisito rígido</b>: se houver WebGPU ele usa, e se não, cai para WASM (mais lento, mas roda até no celular). A verificação diz o que você tem.",
+    req_panel_h:'Aceleração do <em style="font-style:normal;color:var(--amber)">seu</em> dispositivo', req_checking:"verificando sua máquina…",
+    req_side1:"Este painel <b>verifica sua máquina de verdade</b>, agora — com o WebGPU deste navegador, sem baixar nada.",
+    req_side2:"O modelo pesa ~309 MB (uma vez). Com WebGPU as consultas são quase instantâneas; em WASM demoram um pouco mais.",
+    honest_eyebrow:"O que convém saber", honest_h:"Sem letras miúdas.",
+    h1b:"A aba precisa ficar aberta.", h1s:"É o motor. Feche e a API responde 503. Você escolhe a pasta e carrega o modelo à mão uma vez por sessão.",
+    h2b:"Precisa de Chromium para a pasta.", h2s:"File System Access (escolher a pasta de coleções) é do Chrome/Edge. O modelo em si roda em qualquer navegador com WASM.",
+    h3b:"Primeira carga do modelo: ~309 MB.", h3s:"<code>embeddinggemma-300m</code> do Hugging Face; depois fica em cache e abre na hora.",
+    h4b:"Um pedido por vez.", h4s:"É uma única aba. Pedidos que chegam com um em andamento esperam a vez.",
+    sib_b:"Prefere rodar como servidor?", sib_p:"O rag-local também é um app Node/CLI clássico: o mesmo engine, sem navegador. Essa é a página principal dele.",
+    sib_cta:"Ver rag-local (Node) →",
+    foot_attrib:'Todo o código é do próprio repositório (MIT). O modelo de embeddings <a href="https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX" target="_blank" rel="noopener">embeddinggemma-300m</a> é baixado pelo navegador do Hugging Face, sob seus próprios termos.',
+    foot_repo:"Repositório ↗", foot_node:"rag-local (Node)",
+    dev_nowebgpu:"<strong>Sem WebGPU — roda mesmo assim.</strong> Este navegador vai rodar o modelo em WASM: mais lento, mas funciona.",
+    dev_noadapter:"<strong>WebGPU sem adapter — cai para WASM.</strong> A GPU não está disponível para o navegador; o modelo usará WASM.",
+    dev_accel:"Aceleração", dev_fsa:"Pasta (File System Access)", dev_disk:"Espaço (modelo ~309 MB)",
+    dev_vwebgpu:"<strong>Compatível, com aceleração.</strong> WebGPU disponível: os embeddings rodam na sua GPU. Download: ~309 MB na primeira vez.",
+    dev_vwasm:"<strong>Compatível, em WASM.</strong> Sem WebGPU, mas o modelo roda igual (mais lento). Download: ~309 MB na primeira vez.",
+    dev_note:"O rag-local não tem requisito rígido: transformers.js usa WebGPU se houver e cai para WASM se não. Para escolher a pasta de coleções é preciso Chromium."
+  }
+};
+
+let LANG='en';
+function pickLang(){ const s=localStorage.getItem('lang'); if(s&&I18N[s])return s; const n=(navigator.language||'en').slice(0,2).toLowerCase(); return I18N[n]?n:'en'; }
+function applyLang(lang){
+  LANG=I18N[lang]?lang:'en'; const d=I18N[LANG]; document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ const v=d[el.getAttribute('data-i18n')]; if(v!=null) el.innerHTML=v; });
+  document.querySelectorAll('#langsel button').forEach(b=>b.classList.toggle('on', b.dataset.lang===LANG));
+  localStorage.setItem('lang',LANG);
+  runDeviceCheck();
+}
+document.querySelectorAll('#langsel button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
+
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.14});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+document.querySelectorAll('.codeblock .cp').forEach(btn=>{btn.addEventListener('click',()=>{const c=btn.parentElement.querySelector('pre').innerText;navigator.clipboard.writeText(c).then(()=>{const t=btn.textContent;btn.textContent='✓';setTimeout(()=>btn.textContent=t,1400);});});});
+
+// LIVE device check — rag-local no tiene requisito duro: WebGPU acelera, WASM es el fallback.
+async function runDeviceCheck(){
+  const body=document.getElementById('landingDevBody'); if(!body) return;
+  const d=I18N[LANG];
+  const GB=n=>(n/1073741824).toFixed(2)+' GB';
+  const row=(k,v,cls)=>`<div class="r"><span>${k}</span><span${cls?' class="'+cls+'"':''}>${v}</span></div>`;
+  const font='font-family:Geist,sans-serif';
+  const fsa = ('showDirectoryPicker' in window);
+  let quota=0; try{ quota=(await navigator.storage.estimate()).quota||0; }catch(e){}
+  let webgpu=false, gpuName='';
+  if(navigator.gpu){
+    try{ const a=await navigator.gpu.requestAdapter(); if(a){ webgpu=true; const i=a.info||{}; gpuName=(i.vendor||'')+' '+(i.architecture||i.description||''); } }catch(e){}
+  }
+  let rows='';
+  rows+=row(d.dev_accel, webgpu?('WebGPU'+(gpuName.trim()?' · '+gpuName.trim():'')):'WASM', webgpu?'ok':'warn');
+  rows+=row(d.dev_fsa, fsa?'✓':'—', fsa?'ok':'warn');
+  rows+=row(d.dev_disk, quota?GB(quota):'?', 'ok');
+  const verdict = webgpu
+    ? `<div class="verdict">${d.dev_vwebgpu}</div>`
+    : `<div class="verdict warn">${d.dev_vwasm}</div>`;
+  body.style.opacity=1;
+  body.innerHTML=rows+verdict+`<div class="note">${d.dev_note}</div>`;
+}
+
+applyLang(pickLang());
+</script>
+</body>
+</html>

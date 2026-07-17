@@ -1,0 +1,16 @@
+{
+  "name": "rag-local-pages",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deploy the browser RAG engine as an HTTP API on Cloudflare Pages",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "node build.mjs && wrangler pages deploy _site",
+    "dev": "node build.mjs && wrangler pages dev _site",
+    "test": "node --test rag-poc/*.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

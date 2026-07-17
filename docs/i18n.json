@@ -60,7 +60,9 @@
     "faq_a5": "Sí. Borrás la carpeta del proyecto y no queda ningún rastro. No instala nada en el sistema ni deja archivos sueltos.",
     "footer_license": "Licencia MIT",
     "footer_credit_html": "Hecho sobre el trabajo de <strong>EmbeddingGemma</strong>, <strong>js-vector-store</strong>, <strong>mcpwasm</strong> y el formato <strong>OKF</strong>.",
-    "footer_repo": "Ver en GitHub"
+    "footer_repo": "Ver en GitHub",
+    "cf_banner": "¿Lo querés como API sin servidor? Desplegalo en Cloudflare Pages: corre en el navegador y lo consultás por HTTP.",
+    "cf_cta": "Ver el modo Cloudflare Pages →"
   },
   "en": {
     "hero_title": "rag-local",
@@ -123,7 +125,9 @@
     "faq_a5": "Yes. You delete the project folder and nothing is left behind. It doesn't install anything into the system or leave stray files.",
     "footer_license": "MIT License",
     "footer_credit_html": "Built on the work of <strong>EmbeddingGemma</strong>, <strong>js-vector-store</strong>, <strong>mcpwasm</strong>, and the <strong>OKF</strong> format.",
-    "footer_repo": "View on GitHub"
+    "footer_repo": "View on GitHub",
+    "cf_banner": "Want it as a serverless API? Deploy it to Cloudflare Pages: it runs in the browser and you query it over HTTP.",
+    "cf_cta": "See the Cloudflare Pages mode →"
   },
   "pt": {
     "hero_title": "rag-local",
@@ -186,6 +190,8 @@
     "faq_a5": "Sim. Você apaga a pasta do projeto e não sobra nenhum rastro. Não instala nada no sistema nem deixa arquivos soltos.",
     "footer_license": "Licença MIT",
     "footer_credit_html": "Feito sobre o trabalho de <strong>EmbeddingGemma</strong>, <strong>js-vector-store</strong>, <strong>mcpwasm</strong> e o formato <strong>OKF</strong>.",
-    "footer_repo": "Ver no GitHub"
+    "footer_repo": "Ver no GitHub",
+    "cf_banner": "Quer como uma API sem servidor? Implante na Cloudflare Pages: roda no navegador e você consulta por HTTP.",
+    "cf_cta": "Ver o modo Cloudflare Pages →"
   }
 }
