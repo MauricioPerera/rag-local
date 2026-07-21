@@ -233,7 +233,7 @@ export function startServer({
             else sendJSON(res, 400, { error: e.message }, req);
             return;
           }
-          handle(res, req, () => engine.createCollection(body.name, body.docs), (result) =>
+          handle(res, req, () => engine.createCollection(body.name, body.docs, body.contract), (result) =>
             sendJSON(res, 200, result, req),
           );
           return;
@@ -265,7 +265,11 @@ export function startServer({
             else sendJSON(res, 400, { error: e.message }, req);
             return;
           }
-          handle(res, req, () => engine.query(name, body.text, body.k), (result) =>
+          handle(res, req, () => engine.query(name, body.text, body.k, {
+            expand_links: !!body.expand_links,
+            threshold: body.threshold,
+            hops: body.hops,
+          }), (result) =>
             sendJSON(res, 200, result, req),
           );
           return;
