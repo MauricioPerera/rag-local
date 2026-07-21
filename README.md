@@ -62,9 +62,9 @@ The server is stateless across restarts: collections persist as
 |--------|---------------------------------------|-------------------------------|
 | GET    | `/health`                             | liveness                      |
 | GET    | `/collections`                        | list collection names         |
-| POST   | `/collections`                        | create collection from docs   |
+| POST   | `/collections`                        | create collection from docs (optional `contract`) |
 | DELETE | `/collections/:name`                  | delete collection             |
-| POST   | `/collections/:name/query`            | top-k retrieval               |
+| POST   | `/collections/:name/query`            | top-k retrieval (`threshold`, `expand_links`, `hops`) |
 | GET    | `/collections/:name/export`           | export `.jvsb` bundle         |
 | POST   | `/collections/:name/import`           | import `.jvsb` bundle         |
 | GET    | `/` , `/ui/*`                         | admin Web UI                  |
@@ -146,6 +146,59 @@ Validator requirements:
 - `description` — string, length > 10
 - `tags` — array (inline `[a, b, c]` supported)
 - `body` — free text after the closing `---`
+
+### Knowledge contracts (per collection)
+
+`POST /collections` accepts an optional `contract` that the engine enforces
+deterministically on every doc — at creation and on later appends. Violations
+reject the whole batch with named `kc-*` findings (same per-doc error format
+as the base validator). The contract persists inside the `.jvsb` bundle
+(`contract.json` entry), so it travels with export/import.
+
+```json
+{
+  "name": "aurora",
+  "contract": {
+    "max_chars": 200,
+    "forbid_relative": true,
+    "forbidden_patterns": ["\bTBD\b"],
+    "allowed_tags": ["aurora", "infra", "people", "process"],
+    "min_links": 0
+  },
+  "docs": [ { "id": "f1", "md": "---
+type: fact
+..." } ]
+}
+```
+
+- `max_chars` — cap on `description` length (0/absent = no cap)
+- `forbid_relative` — rejects relative phrasings ("immediately after",
+  "the next/previous/same", "N days before/after", "higher/lower than the")
+  via the exported `RELATIVE_PATTERNS` set (`kc-relative`). Facts that need
+  another entry to be resolved poison small consumers — state them absolutely.
+- `forbidden_patterns` — additional custom regexes (`kc-pattern`)
+- `allowed_tags` — closed tag vocabulary (`kc-tags`)
+- `min_links` — minimum markdown links to other concept ids per doc (`kc-links`)
+
+### Query options: threshold, link expansion, hops
+
+`POST /collections/:name/query` accepts, besides `text` and `k`:
+
+- `threshold` — score floor applied by the **engine** to the normal hits
+  *before* expansion. This matters: a sub-threshold doc that is linked from a
+  surviving hit is rescued by expansion instead of silently falling between
+  engine-side dedup and client-side filtering.
+- `expand_links: true` — docs markdown-linked (`[label](concept-id)`) from the
+  surviving hits are appended to the result with `expanded: true`,
+  `via: <parent id>`, `score: null`. Deduped globally; cycle-safe.
+- `hops` — expansion depth (default 1, clamped to 3). With `hops: 2` a chain
+  `stormdb -> vega -> R2 -> Quito` resolves fully from a single query.
+
+Measured effect (1B consumer, 14-question multi-fact synthesis oracle):
+realistic-retrieval synthesis went from **64% to 91%** with contract-modeled
+facts + `threshold` + `hops: 2`; a 27B consumer reached **14/14** on the same
+retrieval. Full evidence:
+[evaluaciones-modelos-locales](https://github.com/MauricioPerera/evaluaciones-modelos-locales).
 
 Example doc (from `rag-poc/okf-docs.json`):
 
