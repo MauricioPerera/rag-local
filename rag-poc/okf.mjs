@@ -84,6 +84,36 @@ function parseFrontmatter(fmLines, result) {
   }
 }
 
+// Parsing de links markdown [text](target) del cuerpo/body de un doc OKF.
+// Devuelve [{text, target}] en orden de aparición. `target` es el primer token
+// dentro de los paréntesis (sin el título opcional "…"), recortado.
+// No filtra por tipo de destino: el caller decide qué cuenta como concept-id
+// (p.ej. excluir URLs http/https/mailto). Links sin target → se omiten.
+const MARKDOWN_LINK_RE = /\[([^\]]*)\]\(([^)]*)\)/g;
+export function parseMarkdownLinks(text) {
+  const out = [];
+  if (typeof text !== 'string' || text.length === 0) return out;
+  MARKDOWN_LINK_RE.lastIndex = 0;
+  let m;
+  while ((m = MARKDOWN_LINK_RE.exec(text)) !== null) {
+    const rawTarget = m[2] || '';
+    // "id" o "id \"title\"": el destino es el primer token antes del espacio.
+    const target = rawTarget.split(/\s/)[0].trim();
+    if (target === '') continue;
+    out.push({ text: m[1], target });
+  }
+  return out;
+}
+
+// True si `target` parece un concept-id (no una URL externa). Usado para contar
+// links internos (min_links) y para expandir solo referencias a concepts.
+export function isConceptTarget(target) {
+  if (typeof target !== 'string' || target.length === 0) return false;
+  if (/^(https?:|mailto:|\/\/|#|\.\/|\.\.\/)/i.test(target)) return false;
+  if (target.includes('://')) return false;
+  return true;
+}
+
 export function composeEmbeddingText(concept) {
   const { title, description, tags } = concept;
   const base = `${title}. ${description}`;
